@@ -1,0 +1,11 @@
+<% content_for :title, "New inventory movement" %>
+
+<h1>New inventory movement</h1>
+
+<%= render "form", inventory_movement: @inventory_movement %>
+
+<br>
+
+<div>
+  <%= link_to "Back to inventory movements", inventory_movements_path %>
+</div>

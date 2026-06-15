@@ -1,0 +1,19 @@
+# Read about fixtures at https://api.rubyonrails.org/classes/ActiveRecord/FixtureSet.html
+
+one:
+  business: one
+  reference_number: MyString
+  created_by_id: 
+  supplier_name: MyString
+  status: MyString
+  received_at: 2026-06-14 21:49:48
+  notes: MyText
+
+two:
+  business: two
+  reference_number: MyString
+  created_by_id: 
+  supplier_name: MyString
+  status: MyString
+  received_at: 2026-06-14 21:49:48
+  notes: MyText

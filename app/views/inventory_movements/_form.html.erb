@@ -1,0 +1,62 @@
+<%= form_with(model: inventory_movement) do |form| %>
+  <% if inventory_movement.errors.any? %>
+    <div style="color: red">
+      <h2><%= pluralize(inventory_movement.errors.count, "error") %> prohibited this inventory_movement from being saved:</h2>
+
+      <ul>
+        <% inventory_movement.errors.each do |error| %>
+          <li><%= error.full_message %></li>
+        <% end %>
+      </ul>
+    </div>
+  <% end %>
+
+  <div>
+    <%= form.label :inventory_id, style: "display: block" %>
+    <%= form.text_field :inventory_id %>
+  </div>
+
+  <div>
+    <%= form.label :previous_quantity, style: "display: block" %>
+    <%= form.text_field :previous_quantity %>
+  </div>
+
+  <div>
+    <%= form.label :new_quantity, style: "display: block" %>
+    <%= form.text_field :new_quantity %>
+  </div>
+
+  <div>
+    <%= form.label :movement_type, style: "display: block" %>
+    <%= form.text_field :movement_type %>
+  </div>
+
+  <div>
+    <%= form.label :reference_type, style: "display: block" %>
+    <%= form.text_field :reference_type %>
+  </div>
+
+  <div>
+    <%= form.label :reference_id, style: "display: block" %>
+    <%= form.text_field :reference_id %>
+  </div>
+
+  <div>
+    <%= form.label :user_id, style: "display: block" %>
+    <%= form.text_field :user_id %>
+  </div>
+
+  <div>
+    <%= form.label :moved_at, style: "display: block" %>
+    <%= form.datetime_field :moved_at %>
+  </div>
+
+  <div>
+    <%= form.label :notes, style: "display: block" %>
+    <%= form.textarea :notes %>
+  </div>
+
+  <div>
+    <%= form.submit %>
+  </div>
+<% end %>

@@ -1,0 +1,57 @@
+<%= form_with(model: role_assignment) do |form| %>
+  <% if role_assignment.errors.any? %>
+    <div style="color: red">
+      <h2><%= pluralize(role_assignment.errors.count, "error") %> prohibited this role_assignment from being saved:</h2>
+
+      <ul>
+        <% role_assignment.errors.each do |error| %>
+          <li><%= error.full_message %></li>
+        <% end %>
+      </ul>
+    </div>
+  <% end %>
+
+  <div>
+    <%= form.label :user_id, style: "display: block" %>
+    <%= form.text_field :user_id %>
+  </div>
+
+  <div>
+    <%= form.label :business_id, style: "display: block" %>
+    <%= form.text_field :business_id %>
+  </div>
+
+  <div>
+    <%= form.label :role, style: "display: block" %>
+    <%= form.text_field :role %>
+  </div>
+
+  <div>
+    <%= form.label :assigned_modules, style: "display: block" %>
+    <%= form.text_field :assigned_modules %>
+  </div>
+
+  <div>
+    <%= form.label :restrictions, style: "display: block" %>
+    <%= form.textarea :restrictions %>
+  </div>
+
+  <div>
+    <%= form.label :assigned_at, style: "display: block" %>
+    <%= form.datetime_field :assigned_at %>
+  </div>
+
+  <div>
+    <%= form.label :ended_at, style: "display: block" %>
+    <%= form.datetime_field :ended_at %>
+  </div>
+
+  <div>
+    <%= form.label :status, style: "display: block" %>
+    <%= form.text_field :status %>
+  </div>
+
+  <div>
+    <%= form.submit %>
+  </div>
+<% end %>

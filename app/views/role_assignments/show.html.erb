@@ -1,0 +1,10 @@
+<p style="color: green"><%= notice %></p>
+
+<%= render @role_assignment %>
+
+<div>
+  <%= link_to "Edit this role assignment", edit_role_assignment_path(@role_assignment) %> |
+  <%= link_to "Back to role assignments", role_assignments_path %>
+
+  <%= button_to "Destroy this role assignment", @role_assignment, method: :delete %>
+</div>

@@ -1,0 +1,25 @@
+# Read about fixtures at https://api.rubyonrails.org/classes/ActiveRecord/FixtureSet.html
+
+one:
+  business: one
+  reference_number: MyString
+  created_by_id: 
+  customer_name: MyString
+  customer_identifier: MyString
+  payment_condition: MyString
+  payment_status: MyString
+  payment_due_at: 2026-06-14 21:49:50
+  total: 9.99
+  notes: MyText
+
+two:
+  business: two
+  reference_number: MyString
+  created_by_id: 
+  customer_name: MyString
+  customer_identifier: MyString
+  payment_condition: MyString
+  payment_status: MyString
+  payment_due_at: 2026-06-14 21:49:50
+  total: 9.99
+  notes: MyText

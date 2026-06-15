@@ -1,0 +1,16 @@
+<p style="color: green"><%= notice %></p>
+
+<% content_for :title, "Inventory movements" %>
+
+<h1>Inventory movements</h1>
+
+<div id="inventory_movements">
+  <% @inventory_movements.each do |inventory_movement| %>
+    <%= render inventory_movement %>
+    <p>
+      <%= link_to "Show this inventory movement", inventory_movement %>
+    </p>
+  <% end %>
+</div>
+
+<%= link_to "New inventory movement", new_inventory_movement_path %>

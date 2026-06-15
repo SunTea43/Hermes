@@ -1,0 +1,10 @@
+<p style="color: green"><%= notice %></p>
+
+<%= render @inventory_movement %>
+
+<div>
+  <%= link_to "Edit this inventory movement", edit_inventory_movement_path(@inventory_movement) %> |
+  <%= link_to "Back to inventory movements", inventory_movements_path %>
+
+  <%= button_to "Destroy this inventory movement", @inventory_movement, method: :delete %>
+</div>

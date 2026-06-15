@@ -1,0 +1,21 @@
+# Read about fixtures at https://api.rubyonrails.org/classes/ActiveRecord/FixtureSet.html
+
+one:
+  user: one
+  business: one
+  role: MyString
+  assigned_modules: MyString
+  restrictions: MyText
+  assigned_at: 2026-06-14 21:49:45
+  ended_at: 2026-06-14 21:49:45
+  status: MyString
+
+two:
+  user: two
+  business: two
+  role: MyString
+  assigned_modules: MyString
+  restrictions: MyText
+  assigned_at: 2026-06-14 21:49:45
+  ended_at: 2026-06-14 21:49:45
+  status: MyString

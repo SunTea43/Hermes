@@ -1,0 +1,16 @@
+<p style="color: green"><%= notice %></p>
+
+<% content_for :title, "Sales order items" %>
+
+<h1>Sales order items</h1>
+
+<div id="sales_order_items">
+  <% @sales_order_items.each do |sales_order_item| %>
+    <%= render sales_order_item %>
+    <p>
+      <%= link_to "Show this sales order item", sales_order_item %>
+    </p>
+  <% end %>
+</div>
+
+<%= link_to "New sales order item", new_sales_order_item_path %>

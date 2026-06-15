@@ -1,0 +1,15 @@
+# Read about fixtures at https://api.rubyonrails.org/classes/ActiveRecord/FixtureSet.html
+
+one:
+  email: user_one@example.com
+  encrypted_password: <%= Devise::Encryptor.digest(User, "password123") %>
+  name: User One
+  whatsapp_phone: "+573000000001"
+  status: active
+
+two:
+  email: user_two@example.com
+  encrypted_password: <%= Devise::Encryptor.digest(User, "password123") %>
+  name: User Two
+  whatsapp_phone: "+573000000002"
+  status: active

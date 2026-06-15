@@ -1,0 +1,67 @@
+<%= form_with(model: sales_order) do |form| %>
+  <% if sales_order.errors.any? %>
+    <div style="color: red">
+      <h2><%= pluralize(sales_order.errors.count, "error") %> prohibited this sales_order from being saved:</h2>
+
+      <ul>
+        <% sales_order.errors.each do |error| %>
+          <li><%= error.full_message %></li>
+        <% end %>
+      </ul>
+    </div>
+  <% end %>
+
+  <div>
+    <%= form.label :business_id, style: "display: block" %>
+    <%= form.text_field :business_id %>
+  </div>
+
+  <div>
+    <%= form.label :reference_number, style: "display: block" %>
+    <%= form.text_field :reference_number %>
+  </div>
+
+  <div>
+    <%= form.label :created_by_id, style: "display: block" %>
+    <%= form.text_field :created_by_id %>
+  </div>
+
+  <div>
+    <%= form.label :customer_name, style: "display: block" %>
+    <%= form.text_field :customer_name %>
+  </div>
+
+  <div>
+    <%= form.label :customer_identifier, style: "display: block" %>
+    <%= form.text_field :customer_identifier %>
+  </div>
+
+  <div>
+    <%= form.label :payment_condition, style: "display: block" %>
+    <%= form.text_field :payment_condition %>
+  </div>
+
+  <div>
+    <%= form.label :payment_status, style: "display: block" %>
+    <%= form.text_field :payment_status %>
+  </div>
+
+  <div>
+    <%= form.label :payment_due_at, style: "display: block" %>
+    <%= form.datetime_field :payment_due_at %>
+  </div>
+
+  <div>
+    <%= form.label :total, style: "display: block" %>
+    <%= form.text_field :total %>
+  </div>
+
+  <div>
+    <%= form.label :notes, style: "display: block" %>
+    <%= form.textarea :notes %>
+  </div>
+
+  <div>
+    <%= form.submit %>
+  </div>
+<% end %>
