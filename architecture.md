@@ -83,9 +83,9 @@
 - usuario_creó (FK → Usuarios)
 - cliente_nombre
 - cliente_identificación (opcional)
-- estado (pendiente, completada, fiada, cancelada)
-- es_fiada (boolean)
-- fecha_vencimiento_fiado (si aplica)
+- condición_pago (contado, crédito)
+- estado_pago (pendiente, parcial, pagada, cancelada)
+- fecha_vencimiento_pago (si aplica)
 - total
 - notas
 ```
@@ -101,25 +101,15 @@
 - subtotal
 ```
 
-#### **Transacciones_Fiado**
-```
-- id_transacción (PK)
-- id_orden_venta (FK)
-- monto_total
-- monto_pagado
-- monto_pendiente
-- fecha_último_pago
-- historial_pagos (referencia a tabla de pagos)
-- estado (activa, cancelada, vencida)
-```
-
-#### **Pagos_Fiado**
+#### **Pagos**
 ```
 - id_pago (PK)
-- id_transacción_fiado (FK)
+- id_orden_venta (FK)
 - monto
 - fecha_pago
 - método_pago (efectivo, transferencia, otro)
+- tipo_pago (abono, liquidación, devolución, ajuste)
+- estado_pago (registrado, anulado)
 - usuario_registró (FK)
 - notas
 ```
@@ -167,9 +157,7 @@ Productos (1) ──┬─→ (M) Precios_Producto
 
 Órdenes_Compra (1) ──→ (M) Items_Orden_Compra
 Órdenes_Venta (1) ──┬─→ (M) Items_Orden_Venta
-                    └─→ (1) Transacciones_Fiado
-
-Transacciones_Fiado (1) ──→ (M) Pagos_Fiado
+                    └─→ (M) Pagos
 ```
 
 ### 1.3 Diagrama ER en Mermaid
@@ -244,9 +232,9 @@ erDiagram
           bigint usuario_creo FK
           string cliente_nombre
           string cliente_identificacion
-          string estado
-          boolean es_fiada
-          datetime fecha_vencimiento_fiado
+          string condicion_pago
+          string estado_pago
+          datetime fecha_vencimiento_pago
           decimal total
           string notas
      }
@@ -261,22 +249,14 @@ erDiagram
           decimal subtotal
      }
 
-     TRANSACCIONES_FIADO {
-          bigint id_transaccion PK
-          bigint id_orden_venta FK
-          decimal monto_total
-          decimal monto_pagado
-          decimal monto_pendiente
-          datetime fecha_ultimo_pago
-          string estado
-     }
-
-     PAGOS_FIADO {
+     PAGOS {
           bigint id_pago PK
-          bigint id_transaccion_fiado FK
+          bigint id_orden_venta FK
           decimal monto
           datetime fecha_pago
           string metodo_pago
+          string tipo_pago
+          string estado_pago
           bigint usuario_registro FK
           string notas
      }
@@ -324,7 +304,7 @@ erDiagram
      USUARIOS ||--o{ NEGOCIO : propietario
      USUARIOS ||--o{ ORDENES_COMPRA : crea
      USUARIOS ||--o{ ORDENES_VENTA : crea
-     USUARIOS ||--o{ PAGOS_FIADO : registra
+     USUARIOS ||--o{ PAGOS : registra
      USUARIOS ||--o{ MOVIMIENTOS_INVENTARIO : ejecuta
      USUARIOS ||--o{ ASIGNACION_ROL_USUARIO : recibe
 
@@ -335,12 +315,60 @@ erDiagram
 
      ORDENES_COMPRA ||--o{ ITEMS_ORDEN_COMPRA : contiene
      ORDENES_VENTA ||--o{ ITEMS_ORDEN_VENTA : contiene
-     ORDENES_VENTA ||--o| TRANSACCIONES_FIADO : genera
-
-     TRANSACCIONES_FIADO ||--o{ PAGOS_FIADO : recibe
+     ORDENES_VENTA ||--o{ PAGOS : recibe
 
      INVENTARIO ||--o{ MOVIMIENTOS_INVENTARIO : registra
 ```
+
+### 1.4 Alternativas de Modelado para Compras y Ventas
+
+Para evitar duplicación y mantener compatibilidad con ORM, se proponen dos caminos válidos:
+
+#### **Opción A: Tabla Única de Órdenes (Single Table)**
+
+Unificar compras y ventas en una sola tabla `ORDENES` con un discriminador `tipo_orden` (`compra`, `venta`).
+
+Campos comunes sugeridos:
+- `id_orden`
+- `id_negocio`
+- `tipo_orden`
+- `numero_referencia`
+- `fecha_creacion`
+- `usuario_creo`
+- `tercero_nombre` (cliente/proveedor)
+- `tercero_identificacion` (opcional)
+- `total`
+- `estado`
+
+Ventajas:
+- Menos tablas y menos duplicación estructural.
+- Lecturas unificadas para reportes globales de órdenes.
+- Implementación rápida en etapas tempranas.
+
+Riesgos:
+- Mayor cantidad de reglas condicionales por `tipo_orden`.
+- Más posibilidad de columnas no usadas o semántica ambigua.
+- Puede complejizar validaciones en ORM a medida que crecen casos de negocio.
+
+#### **Opción B: Base Común + Subtipos (Table per Type / composición)**
+
+Mantener separación funcional por tipo de orden (`ORDENES_COMPRA`, `ORDENES_VENTA`) y consolidar solo lo común a nivel de contrato de dominio.
+
+Ventajas:
+- Reglas de negocio más claras por tipo.
+- Mejor integridad referencial para entidades específicas (ej. `PAGOS` en ventas).
+- Menor acoplamiento al crecer funcionalidades contables y operativas.
+
+Riesgos:
+- Más tablas y más joins.
+- Duplicación parcial de campos comunes.
+
+#### **Criterio de decisión (recomendado)**
+
+- Si el objetivo inmediato es velocidad de implementación y hoy las columnas son casi idénticas: **Opción A**.
+- Si se prioriza mantenibilidad a mediano/largo plazo y evolución de reglas distintas entre compra y venta: **Opción B**.
+
+**Nota ORM:** Si se usa ORM, priorizar un discriminador explícito (`tipo_orden`) y validaciones por contexto; evitar lógica implícita que dependa solo de campos opcionales (`cliente`/`proveedor`).
 
 ---
 
@@ -361,7 +389,7 @@ erDiagram
 #### **Gestor (MANAGER)**
 - Registrar órdenes de compra
 - Registrar órdenes de venta
-- Registrar pagos de fiado
+- Registrar pagos
 - Ver reportes básicos (los asignados)
 - Actualizar inventario
 - NO puede: eliminar registros, cambiar precios globales, crear gestores
@@ -370,7 +398,7 @@ erDiagram
 - Registrar órdenes de venta (si está asignado a módulo de ventas)
 - Registrar órdenes de compra (si está asignado a módulo de compras)
 - Ver resumen de su actividad
-- NO puede: ver reportes financieros, cambiar inventario sin supervisor, acceder a fiados
+- NO puede: ver reportes financieros, cambiar inventario sin supervisor, gestionar cartera
 
 #### **Visualizador (VIEWER)**
 - Solo lectura de reportes asignados
@@ -384,8 +412,8 @@ erDiagram
 | Crear gestor | ✓ | ✗ | ✗ | ✗ |
 | Registrar compra | ✓ | ✓ | ✓* | ✗ |
 | Registrar venta | ✓ | ✓ | ✓* | ✗ |
-| Registrar fiado | ✓ | ✓ | ✗ | ✗ |
-| Registrar pago fiado | ✓ | ✓ | ✗ | ✗ |
+| Registrar venta a crédito | ✓ | ✓ | ✗ | ✗ |
+| Registrar pago | ✓ | ✓ | ✗ | ✗ |
 | Actualizar inventario | ✓ | ✓ | ✗ | ✗ |
 | Ver reportes | ✓ | ✓** | ✓** | ✓** |
 | Cambiar precios | ✓ | ✗ | ✗ | ✗ |
@@ -402,7 +430,7 @@ Entidad: Asignación_Rol_Usuario
 - id_usuario (FK)
 - id_negocio (FK)
 - rol (OWNER, MANAGER, OPERATOR, VIEWER)
-- módulos_asignados (compras, ventas, inventario, reportes, fiado)
+- módulos_asignados (compras, ventas, inventario, reportes, cartera)
 - restricciones (ej: monto máximo, categorías de productos)
 - fecha_asignación
 - fecha_finalización (NULL si vigente)
@@ -418,17 +446,17 @@ Entidad: Asignación_Rol_Usuario
 #### **Reporte 1: Dashboard Diario**
 - Ventas totales del día
 - Compras totales del día
-- Número de órdenes fiadas
-- Monto pendiente de cobro (fiado)
+- Número de órdenes a crédito
+- Monto pendiente de cobro (cartera)
 - Top 5 productos vendidos
 - Alertas de inventario bajo
 - Ingresos vs egresos (síntesis)
 
-#### **Reporte 2: Estado de Fiados**
-- Lista de clientes con deuda
+#### **Reporte 2: Estado de Cartera (Ventas a Crédito)**
+- Lista de clientes con saldo pendiente
 - Monto adeudado por cliente
 - Días vencidos
-- Historial de pagos del cliente
+- Historial de pagos por orden
 - Órdenes asociadas
 - Proyección de cobranza
 
@@ -450,7 +478,7 @@ Entidad: Asignación_Rol_Usuario
 #### **Reporte 5: Movimientos Mensuales**
 - Resumen de compras por proveedor
 - Resumen de ventas (total y por cliente)
-- Montos por cobrar (fiado)
+- Montos por cobrar (cartera)
 - Pagos realizados en el mes
 - Crecimiento/decrecimiento vs mes anterior
 
@@ -458,13 +486,13 @@ Entidad: Asignación_Rol_Usuario
 - Cambios de precios (cuándo, quién, cuánto)
 - Ajustes de inventario (quién, cuándo, por qué)
 - Órdenes canceladas
-- Cambios en fiados (abonos, condonaciones)
+- Cambios en cartera (abonos, condonaciones, anulaciones)
 - Usuarios con más actividad
 
 #### **Reporte 7: Vista Contable (Web)**
 - Estado de resultados simplificado (ingresos, costos, utilidad)
 - Flujo de caja del período
-- Cuentas por cobrar (fiados) y por pagar (compras pendientes)
+- Cuentas por cobrar (cartera) y por pagar (compras pendientes)
 - Gastos operativos categorizados
 - Comparativo mensual de ingresos vs egresos
 - Exportación a Excel/PDF
@@ -480,7 +508,7 @@ Entidad: Asignación_Rol_Usuario
 #### **Reporte Resumen Operativo**
 - Stock actual
 - Órdenes pendientes
-- Clientes por cobrar (si tiene permiso)
+- Clientes por cobrar / cartera (si tiene permiso)
 
 ---
 
@@ -567,17 +595,17 @@ Bot: "Perfecto, Don Julio.
 10kg de arroz: $[precio_actual]/kg
 Total: $[subtotal]
 
-¿Es al contado o es fiado?"
+¿Es al contado o a crédito?"
 
-Usuario: "Fiado, para el viernes"
+Usuario: "A crédito, para el viernes"
 
-Bot: "Entendido. Vendida fiada hasta viernes.
+Bot: "Entendido. Venta a crédito con vencimiento viernes.
 ✅ Orden registrada [VEN-2024-042]
 Stock: 200kg → 190kg
 Pendiente de cobro: $[subtotal]"
 ```
 
-#### **Flujo 3: Registrar Pago de Fiado**
+#### **Flujo 3: Registrar Pago de Orden a Crédito**
 
 ```
 Usuario: "Don Julio pagó hoy"
@@ -595,7 +623,7 @@ Nuevo saldo: $[pendiente]
 Usuario: "Sí"
 
 Bot: "✅ Pago registrado
-Deuda Don Julio: $[pendiente] para el viernes"
+Saldo pendiente Don Julio: $[pendiente] para el viernes"
 ```
 
 #### **Flujo 4: Consultar Inventario**
@@ -622,9 +650,9 @@ Bot: "⚠️ Productos bajo stock:
 Usuario: "Dame reporte de hoy"
 
 Bot: "¿Qué reporte necesitas?
-1️⃣ Dashboard (ventas, compras, fiados)
+1️⃣ Dashboard (ventas, compras, cartera)
 2️⃣ Rentabilidad
-3️⃣ Fiados pendientes
+3️⃣ Cartera pendiente
 4️⃣ Inventario
 5️⃣ Actividad personal"
 
@@ -635,7 +663,7 @@ Bot: [Genera reporte]
 
 Ventas: $[total]
 Compras: $[total]
-Fiados nuevos: $[total]
+Ventas a crédito nuevas: $[total]
 Pendiente de cobro: $[total]
 ⚠️ Stock bajo: [cantidad productos]
 
@@ -727,7 +755,7 @@ Bot → [Propietario]
 
 ```
 Bot → [Gestor]
-"⏰ Recordatorio de fiados:
+"⏰ Recordatorio de cartera:
 - Don Julio vence HOY ($50,000)
 - Doña María vence MAÑANA ($30,000)
 
@@ -759,7 +787,7 @@ Usuario (OWNER/MANAGER) abre módulo contable
      ↓
 Selecciona período (hoy, semana, mes, personalizado)
      ↓
-Sistema consolida ventas, compras, pagos y fiados
+Sistema consolida ventas, compras, pagos y cartera
      ↓
 Muestra tableros: ingresos, egresos, utilidad, caja y cuentas por cobrar/pagar
      ↓
@@ -793,7 +821,7 @@ Usuario filtra o exporta reporte (Excel/PDF)
 ┌────────────▼────────────────────────┐
 │   Capa de Lógica de Negocio         │
 │   - Validaciones                    │
-│   - Cálculos (margen, fiado, etc)   │
+│   - Cálculos (margen, cartera, etc) │
 │   - Generador de reportes           │
 │   - Gestor de alertas               │
 │   - Consolidador contable            │
@@ -863,13 +891,13 @@ Usuario (WhatsApp)
 
 | Aspecto | Descripción |
 |--------|------------|
-| **Entidades** | 12 tablas normalizadas: usuarios, productos, órdenes (compra/venta), inventario, fiados, pagos |
+| **Entidades** | 11 tablas normalizadas: usuarios, productos, órdenes (compra/venta), inventario, pagos |
 | **Normalización** | Precios históricos, snapshots en transacciones, movimientos de inventario con auditoría |
 | **Roles** | 4 niveles: Propietario, Gestor, Operario, Visualizador |
 | **Permisos** | Matriz con restricciones por rol (monto máximo, módulos) |
-| **Reportes** | 7+ reportes predefinidos: dashboard, fiados, inventario, rentabilidad, auditoría, contabilidad |
+| **Reportes** | 7+ reportes predefinidos: dashboard, cartera, inventario, rentabilidad, auditoría, contabilidad |
 | **Interfaz** | WhatsApp conversacional + Portal Web (roles/permisos y contabilidad) + OCR para imágenes |
-| **Flujos** | Compra, venta, fiado, pago fiado, consulta, reportes, alertas, asignación web de roles, vista contable web |
+| **Flujos** | Compra, venta, venta a crédito, pago, consulta, reportes, alertas, asignación web de roles, vista contable web |
 | **Arquitectura** | 5 capas: presentación multicanal, aplicación, lógica, datos, BD |
 | **Multimodal** | Texto, números, imágenes, contexto relativo (hoy, ayer) |
 
