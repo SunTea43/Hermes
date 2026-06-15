@@ -17,7 +17,7 @@ class RoleAssignmentsControllerTest < ActionDispatch::IntegrationTest
 
   test "should create role_assignment" do
     assert_difference("RoleAssignment.count") do
-      post role_assignments_url, params: { role_assignment: { assigned_at: @role_assignment.assigned_at, assigned_modules: @role_assignment.assigned_modules, business_id: @role_assignment.business_id, ended_at: @role_assignment.ended_at, restrictions: @role_assignment.restrictions, role: "#{@role_assignment.role}_new", status: @role_assignment.status, user_id: @role_assignment.user_id } }
+      post role_assignments_url, params: { role_assignment: { assigned_at: @role_assignment.assigned_at, assigned_modules: @role_assignment.assigned_modules, business_id: @role_assignment.business_id, ended_at: @role_assignment.ended_at, restrictions: @role_assignment.restrictions, role: "manager", status: @role_assignment.status, user_id: @role_assignment.user_id } }
     end
 
     assert_redirected_to role_assignment_url(RoleAssignment.last)

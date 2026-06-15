@@ -3,25 +3,29 @@ class BusinessesController < ApplicationController
 
   # GET /businesses or /businesses.json
   def index
-    @businesses = Business.all
+    @businesses = policy_scope(Business)
   end
 
   # GET /businesses/1 or /businesses/1.json
   def show
+    authorize @business
   end
 
   # GET /businesses/new
   def new
     @business = Business.new
+    authorize @business
   end
 
   # GET /businesses/1/edit
   def edit
+    authorize @business
   end
 
   # POST /businesses or /businesses.json
   def create
     @business = Business.new(business_params)
+    authorize @business
 
     respond_to do |format|
       if @business.save
@@ -36,6 +40,8 @@ class BusinessesController < ApplicationController
 
   # PATCH/PUT /businesses/1 or /businesses/1.json
   def update
+    authorize @business
+
     respond_to do |format|
       if @business.update(business_params)
         format.html { redirect_to @business, notice: "Business was successfully updated.", status: :see_other }
@@ -49,6 +55,7 @@ class BusinessesController < ApplicationController
 
   # DELETE /businesses/1 or /businesses/1.json
   def destroy
+    authorize @business
     @business.destroy!
 
     respond_to do |format|

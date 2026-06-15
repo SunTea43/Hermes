@@ -3,25 +3,29 @@ class PurchaseOrderItemsController < ApplicationController
 
   # GET /purchase_order_items or /purchase_order_items.json
   def index
-    @purchase_order_items = PurchaseOrderItem.all
+    @purchase_order_items = policy_scope(PurchaseOrderItem)
   end
 
   # GET /purchase_order_items/1 or /purchase_order_items/1.json
   def show
+    authorize @purchase_order_item
   end
 
   # GET /purchase_order_items/new
   def new
     @purchase_order_item = PurchaseOrderItem.new
+    authorize @purchase_order_item
   end
 
   # GET /purchase_order_items/1/edit
   def edit
+    authorize @purchase_order_item
   end
 
   # POST /purchase_order_items or /purchase_order_items.json
   def create
     @purchase_order_item = PurchaseOrderItem.new(purchase_order_item_params)
+    authorize @purchase_order_item
 
     respond_to do |format|
       if @purchase_order_item.save
@@ -36,6 +40,8 @@ class PurchaseOrderItemsController < ApplicationController
 
   # PATCH/PUT /purchase_order_items/1 or /purchase_order_items/1.json
   def update
+    authorize @purchase_order_item
+
     respond_to do |format|
       if @purchase_order_item.update(purchase_order_item_params)
         format.html { redirect_to @purchase_order_item, notice: "Purchase order item was successfully updated.", status: :see_other }
@@ -49,6 +55,7 @@ class PurchaseOrderItemsController < ApplicationController
 
   # DELETE /purchase_order_items/1 or /purchase_order_items/1.json
   def destroy
+    authorize @purchase_order_item
     @purchase_order_item.destroy!
 
     respond_to do |format|

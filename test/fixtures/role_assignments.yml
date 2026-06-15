@@ -3,19 +3,19 @@
 one:
   user: one
   business: one
-  role: MyString
-  assigned_modules: MyString
+  role: owner
+  assigned_modules: sales,inventory,reports
   restrictions: MyText
   assigned_at: 2026-06-14 21:49:45
-  ended_at: 2026-06-14 21:49:45
-  status: MyString
+  ended_at:
+  status: active
 
 two:
   user: two
   business: two
-  role: MyString
-  assigned_modules: MyString
+  role: manager
+  assigned_modules: sales,inventory
   restrictions: MyText
   assigned_at: 2026-06-14 21:49:45
-  ended_at: 2026-06-14 21:49:45
-  status: MyString
+  ended_at:
+  status: active

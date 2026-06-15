@@ -3,25 +3,29 @@ class SalesOrderItemsController < ApplicationController
 
   # GET /sales_order_items or /sales_order_items.json
   def index
-    @sales_order_items = SalesOrderItem.all
+    @sales_order_items = policy_scope(SalesOrderItem)
   end
 
   # GET /sales_order_items/1 or /sales_order_items/1.json
   def show
+    authorize @sales_order_item
   end
 
   # GET /sales_order_items/new
   def new
     @sales_order_item = SalesOrderItem.new
+    authorize @sales_order_item
   end
 
   # GET /sales_order_items/1/edit
   def edit
+    authorize @sales_order_item
   end
 
   # POST /sales_order_items or /sales_order_items.json
   def create
     @sales_order_item = SalesOrderItem.new(sales_order_item_params)
+    authorize @sales_order_item
 
     respond_to do |format|
       if @sales_order_item.save
@@ -36,6 +40,8 @@ class SalesOrderItemsController < ApplicationController
 
   # PATCH/PUT /sales_order_items/1 or /sales_order_items/1.json
   def update
+    authorize @sales_order_item
+
     respond_to do |format|
       if @sales_order_item.update(sales_order_item_params)
         format.html { redirect_to @sales_order_item, notice: "Sales order item was successfully updated.", status: :see_other }
@@ -49,6 +55,7 @@ class SalesOrderItemsController < ApplicationController
 
   # DELETE /sales_order_items/1 or /sales_order_items/1.json
   def destroy
+    authorize @sales_order_item
     @sales_order_item.destroy!
 
     respond_to do |format|

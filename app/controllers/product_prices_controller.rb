@@ -3,25 +3,29 @@ class ProductPricesController < ApplicationController
 
   # GET /product_prices or /product_prices.json
   def index
-    @product_prices = ProductPrice.all
+    @product_prices = policy_scope(ProductPrice)
   end
 
   # GET /product_prices/1 or /product_prices/1.json
   def show
+    authorize @product_price
   end
 
   # GET /product_prices/new
   def new
     @product_price = ProductPrice.new
+    authorize @product_price
   end
 
   # GET /product_prices/1/edit
   def edit
+    authorize @product_price
   end
 
   # POST /product_prices or /product_prices.json
   def create
     @product_price = ProductPrice.new(product_price_params)
+    authorize @product_price
 
     respond_to do |format|
       if @product_price.save
@@ -36,6 +40,8 @@ class ProductPricesController < ApplicationController
 
   # PATCH/PUT /product_prices/1 or /product_prices/1.json
   def update
+    authorize @product_price
+
     respond_to do |format|
       if @product_price.update(product_price_params)
         format.html { redirect_to @product_price, notice: "Product price was successfully updated.", status: :see_other }
@@ -49,6 +55,7 @@ class ProductPricesController < ApplicationController
 
   # DELETE /product_prices/1 or /product_prices/1.json
   def destroy
+    authorize @product_price
     @product_price.destroy!
 
     respond_to do |format|

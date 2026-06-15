@@ -3,25 +3,29 @@ class InventoriesController < ApplicationController
 
   # GET /inventories or /inventories.json
   def index
-    @inventories = Inventory.all
+    @inventories = policy_scope(Inventory)
   end
 
   # GET /inventories/1 or /inventories/1.json
   def show
+    authorize @inventory
   end
 
   # GET /inventories/new
   def new
     @inventory = Inventory.new
+    authorize @inventory
   end
 
   # GET /inventories/1/edit
   def edit
+    authorize @inventory
   end
 
   # POST /inventories or /inventories.json
   def create
     @inventory = Inventory.new(inventory_params)
+    authorize @inventory
 
     respond_to do |format|
       if @inventory.save
@@ -36,6 +40,8 @@ class InventoriesController < ApplicationController
 
   # PATCH/PUT /inventories/1 or /inventories/1.json
   def update
+    authorize @inventory
+
     respond_to do |format|
       if @inventory.update(inventory_params)
         format.html { redirect_to @inventory, notice: "Inventory was successfully updated.", status: :see_other }
@@ -49,6 +55,7 @@ class InventoriesController < ApplicationController
 
   # DELETE /inventories/1 or /inventories/1.json
   def destroy
+    authorize @inventory
     @inventory.destroy!
 
     respond_to do |format|

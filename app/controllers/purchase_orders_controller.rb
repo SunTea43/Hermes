@@ -3,25 +3,29 @@ class PurchaseOrdersController < ApplicationController
 
   # GET /purchase_orders or /purchase_orders.json
   def index
-    @purchase_orders = PurchaseOrder.all
+    @purchase_orders = policy_scope(PurchaseOrder)
   end
 
   # GET /purchase_orders/1 or /purchase_orders/1.json
   def show
+    authorize @purchase_order
   end
 
   # GET /purchase_orders/new
   def new
     @purchase_order = PurchaseOrder.new
+    authorize @purchase_order
   end
 
   # GET /purchase_orders/1/edit
   def edit
+    authorize @purchase_order
   end
 
   # POST /purchase_orders or /purchase_orders.json
   def create
     @purchase_order = PurchaseOrder.new(purchase_order_params)
+    authorize @purchase_order
 
     respond_to do |format|
       if @purchase_order.save
@@ -36,6 +40,8 @@ class PurchaseOrdersController < ApplicationController
 
   # PATCH/PUT /purchase_orders/1 or /purchase_orders/1.json
   def update
+    authorize @purchase_order
+
     respond_to do |format|
       if @purchase_order.update(purchase_order_params)
         format.html { redirect_to @purchase_order, notice: "Purchase order was successfully updated.", status: :see_other }
@@ -49,6 +55,7 @@ class PurchaseOrdersController < ApplicationController
 
   # DELETE /purchase_orders/1 or /purchase_orders/1.json
   def destroy
+    authorize @purchase_order
     @purchase_order.destroy!
 
     respond_to do |format|

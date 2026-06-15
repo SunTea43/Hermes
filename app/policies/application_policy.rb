@@ -4,6 +4,8 @@ class ApplicationPolicy
   attr_reader :user, :record
 
   def initialize(user, record)
+    raise Pundit::NotAuthorizedError, "must be logged in" unless user
+
     @user = user
     @record = record
   end
@@ -49,5 +51,23 @@ class ApplicationPolicy
     private
 
     attr_reader :user, :scope
+  end
+
+  private
+
+  def business
+    nil
+  end
+
+  def can_access_business?
+    return false unless business
+
+    user.can_access_business?(business)
+  end
+
+  def owner_or_manager?
+    return false unless business
+
+    user.owner_or_manager_for?(business)
   end
 end

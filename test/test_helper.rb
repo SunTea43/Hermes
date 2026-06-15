@@ -2,6 +2,7 @@ ENV["RAILS_ENV"] ||= "test"
 require_relative "../config/environment"
 require "rails/test_help"
 require "shoulda-context"
+require "devise"
 
 if defined?(Rails::TestUnitReporter) && !Rails::TestUnitReporter.method_defined?(:executable)
   class Rails::TestUnitReporter
@@ -20,5 +21,13 @@ module ActiveSupport
     fixtures :all
 
     # Add more helper methods to be used by all tests here...
+  end
+end
+
+class ActionDispatch::IntegrationTest
+  include Devise::Test::IntegrationHelpers
+
+  setup do
+    sign_in users(:one)
   end
 end

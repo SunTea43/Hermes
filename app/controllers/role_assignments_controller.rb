@@ -3,25 +3,29 @@ class RoleAssignmentsController < ApplicationController
 
   # GET /role_assignments or /role_assignments.json
   def index
-    @role_assignments = RoleAssignment.all
+    @role_assignments = policy_scope(RoleAssignment)
   end
 
   # GET /role_assignments/1 or /role_assignments/1.json
   def show
+    authorize @role_assignment
   end
 
   # GET /role_assignments/new
   def new
     @role_assignment = RoleAssignment.new
+    authorize @role_assignment
   end
 
   # GET /role_assignments/1/edit
   def edit
+    authorize @role_assignment
   end
 
   # POST /role_assignments or /role_assignments.json
   def create
     @role_assignment = RoleAssignment.new(role_assignment_params)
+    authorize @role_assignment
 
     respond_to do |format|
       if @role_assignment.save
@@ -36,6 +40,8 @@ class RoleAssignmentsController < ApplicationController
 
   # PATCH/PUT /role_assignments/1 or /role_assignments/1.json
   def update
+    authorize @role_assignment
+
     respond_to do |format|
       if @role_assignment.update(role_assignment_params)
         format.html { redirect_to @role_assignment, notice: "Role assignment was successfully updated.", status: :see_other }
@@ -49,6 +55,7 @@ class RoleAssignmentsController < ApplicationController
 
   # DELETE /role_assignments/1 or /role_assignments/1.json
   def destroy
+    authorize @role_assignment
     @role_assignment.destroy!
 
     respond_to do |format|

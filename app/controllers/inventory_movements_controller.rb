@@ -3,25 +3,29 @@ class InventoryMovementsController < ApplicationController
 
   # GET /inventory_movements or /inventory_movements.json
   def index
-    @inventory_movements = InventoryMovement.all
+    @inventory_movements = policy_scope(InventoryMovement)
   end
 
   # GET /inventory_movements/1 or /inventory_movements/1.json
   def show
+    authorize @inventory_movement
   end
 
   # GET /inventory_movements/new
   def new
     @inventory_movement = InventoryMovement.new
+    authorize @inventory_movement
   end
 
   # GET /inventory_movements/1/edit
   def edit
+    authorize @inventory_movement
   end
 
   # POST /inventory_movements or /inventory_movements.json
   def create
     @inventory_movement = InventoryMovement.new(inventory_movement_params)
+    authorize @inventory_movement
 
     respond_to do |format|
       if @inventory_movement.save
@@ -36,6 +40,8 @@ class InventoryMovementsController < ApplicationController
 
   # PATCH/PUT /inventory_movements/1 or /inventory_movements/1.json
   def update
+    authorize @inventory_movement
+
     respond_to do |format|
       if @inventory_movement.update(inventory_movement_params)
         format.html { redirect_to @inventory_movement, notice: "Inventory movement was successfully updated.", status: :see_other }
@@ -49,6 +55,7 @@ class InventoryMovementsController < ApplicationController
 
   # DELETE /inventory_movements/1 or /inventory_movements/1.json
   def destroy
+    authorize @inventory_movement
     @inventory_movement.destroy!
 
     respond_to do |format|

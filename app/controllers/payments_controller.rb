@@ -3,25 +3,29 @@ class PaymentsController < ApplicationController
 
   # GET /payments or /payments.json
   def index
-    @payments = Payment.all
+    @payments = policy_scope(Payment)
   end
 
   # GET /payments/1 or /payments/1.json
   def show
+    authorize @payment
   end
 
   # GET /payments/new
   def new
     @payment = Payment.new
+    authorize @payment
   end
 
   # GET /payments/1/edit
   def edit
+    authorize @payment
   end
 
   # POST /payments or /payments.json
   def create
     @payment = Payment.new(payment_params)
+    authorize @payment
 
     respond_to do |format|
       if @payment.save
@@ -36,6 +40,8 @@ class PaymentsController < ApplicationController
 
   # PATCH/PUT /payments/1 or /payments/1.json
   def update
+    authorize @payment
+
     respond_to do |format|
       if @payment.update(payment_params)
         format.html { redirect_to @payment, notice: "Payment was successfully updated.", status: :see_other }
@@ -49,6 +55,7 @@ class PaymentsController < ApplicationController
 
   # DELETE /payments/1 or /payments/1.json
   def destroy
+    authorize @payment
     @payment.destroy!
 
     respond_to do |format|

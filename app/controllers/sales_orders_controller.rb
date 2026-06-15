@@ -3,25 +3,29 @@ class SalesOrdersController < ApplicationController
 
   # GET /sales_orders or /sales_orders.json
   def index
-    @sales_orders = SalesOrder.all
+    @sales_orders = policy_scope(SalesOrder)
   end
 
   # GET /sales_orders/1 or /sales_orders/1.json
   def show
+    authorize @sales_order
   end
 
   # GET /sales_orders/new
   def new
     @sales_order = SalesOrder.new
+    authorize @sales_order
   end
 
   # GET /sales_orders/1/edit
   def edit
+    authorize @sales_order
   end
 
   # POST /sales_orders or /sales_orders.json
   def create
     @sales_order = SalesOrder.new(sales_order_params)
+    authorize @sales_order
 
     respond_to do |format|
       if @sales_order.save
@@ -36,6 +40,8 @@ class SalesOrdersController < ApplicationController
 
   # PATCH/PUT /sales_orders/1 or /sales_orders/1.json
   def update
+    authorize @sales_order
+
     respond_to do |format|
       if @sales_order.update(sales_order_params)
         format.html { redirect_to @sales_order, notice: "Sales order was successfully updated.", status: :see_other }
@@ -49,6 +55,7 @@ class SalesOrdersController < ApplicationController
 
   # DELETE /sales_orders/1 or /sales_orders/1.json
   def destroy
+    authorize @sales_order
     @sales_order.destroy!
 
     respond_to do |format|
