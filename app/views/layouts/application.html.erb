@@ -24,6 +24,44 @@
   </head>
 
   <body>
-    <%= yield %>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark mb-4">
+      <div class="container">
+        <a class="navbar-brand fw-bold" href="<%= root_path %>">Hermes</a>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarMain">
+          <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarMain">
+          <ul class="navbar-nav me-auto">
+            <li class="nav-item"><%= link_to "Negocios", businesses_path, class: "nav-link" %></li>
+            <li class="nav-item"><%= link_to "Productos", products_path, class: "nav-link" %></li>
+            <li class="nav-item"><%= link_to "Compras", purchase_orders_path, class: "nav-link" %></li>
+            <li class="nav-item"><%= link_to "Ventas", sales_orders_path, class: "nav-link" %></li>
+            <li class="nav-item"><%= link_to "Inventario", inventories_path, class: "nav-link" %></li>
+          </ul>
+          <ul class="navbar-nav ms-auto">
+            <% if user_signed_in? %>
+              <li class="nav-item">
+                <span class="nav-link text-light opacity-75"><%= current_user.name.presence || current_user.email %></span>
+              </li>
+              <li class="nav-item">
+                <%= button_to "Salir", destroy_user_session_path, method: :delete, class: "btn btn-outline-light btn-sm my-1" %>
+              </li>
+            <% end %>
+          </ul>
+        </div>
+      </div>
+    </nav>
+
+    <main class="container">
+      <% flash.each do |type, message| %>
+        <% bs_class = { "notice" => "success", "alert" => "danger", "warning" => "warning" }.fetch(type, "info") %>
+        <div class="alert alert-<%= bs_class %> alert-dismissible fade show" role="alert">
+          <%= message %>
+          <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+      <% end %>
+
+      <%= yield %>
+    </main>
   </body>
 </html>

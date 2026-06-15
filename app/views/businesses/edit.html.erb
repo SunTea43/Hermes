@@ -1,12 +1,7 @@
 <% content_for :title, "Editing business" %>
 
-<h1>Editing business</h1>
+<%= render PageHeaderComponent.new(title: "Editar negocio: #{@business.name}") %>
 
-<%= render "form", business: @business %>
-
-<br>
-
-<div>
-  <%= link_to "Show this business", @business %> |
-  <%= link_to "Back to businesses", businesses_path %>
-</div>
+<%= render CardComponent.new(css_class: "col-lg-7") do %>
+  <%= render "form", business: @business %>
+<% end %>

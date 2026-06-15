@@ -1,0 +1,10 @@
+<div class="card shadow-sm <%= @css_class %>">
+  <% if @title %>
+    <div class="card-header">
+      <h5 class="mb-0"><%= @title %></h5>
+    </div>
+  <% end %>
+  <div class="card-body">
+    <%= content %>
+  </div>
+</div>

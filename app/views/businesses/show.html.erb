@@ -1,10 +1,25 @@
-<p style="color: green"><%= notice %></p>
+<%= render PageHeaderComponent.new(title: @business.name) do %>
+  <div class="d-flex gap-2">
+    <%= link_to "Editar", edit_business_path(@business), class: "btn btn-outline-secondary btn-sm" %>
+    <%= button_to "Eliminar", @business, method: :delete,
+        class: "btn btn-outline-danger btn-sm",
+        form: { data: { turbo_confirm: "¿Estás seguro?" } } %>
+  </div>
+<% end %>
 
-<%= render @business %>
+<%= render CardComponent.new do %>
+  <dl class="row mb-0">
+    <dt class="col-sm-3">Moneda</dt>
+    <dd class="col-sm-9"><%= @business.currency %></dd>
 
-<div>
-  <%= link_to "Edit this business", edit_business_path(@business) %> |
-  <%= link_to "Back to businesses", businesses_path %>
+    <dt class="col-sm-3">Descripción</dt>
+    <dd class="col-sm-9"><%= @business.description.presence || "—" %></dd>
 
-  <%= button_to "Destroy this business", @business, method: :delete %>
+    <dt class="col-sm-3">Propietario</dt>
+    <dd class="col-sm-9"><%= @business.owner&.name.presence || @business.owner&.email || "—" %></dd>
+  </dl>
+<% end %>
+
+<div class="mt-3">
+  <%= link_to "← Volver", businesses_path, class: "text-muted" %>
 </div>

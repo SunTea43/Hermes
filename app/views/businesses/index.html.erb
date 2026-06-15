@@ -1,16 +1,20 @@
-<p style="color: green"><%= notice %></p>
+<% content_for :title, "Negocios" %>
 
-<% content_for :title, "Businesses" %>
+<%= render PageHeaderComponent.new(title: "Negocios") do %>
+  <%= link_to "+ Nuevo negocio", new_business_path, class: "btn btn-primary" %>
+<% end %>
 
-<h1>Businesses</h1>
-
-<div id="businesses">
+<div class="row g-3">
   <% @businesses.each do |business| %>
-    <%= render business %>
-    <p>
-      <%= link_to "Show this business", business %>
-    </p>
+    <div class="col-md-6 col-lg-4">
+      <%= render CardComponent.new(title: business.name) do %>
+        <p class="text-muted mb-1"><%= business.description.presence || "Sin descripción" %></p>
+        <p class="mb-2"><span class="badge bg-secondary"><%= business.currency %></span></p>
+        <div class="d-flex gap-2">
+          <%= link_to "Ver", business, class: "btn btn-sm btn-outline-primary" %>
+          <%= link_to "Editar", edit_business_path(business), class: "btn btn-sm btn-outline-secondary" %>
+        </div>
+      <% end %>
+    </div>
   <% end %>
 </div>
-
-<%= link_to "New business", new_business_path %>
