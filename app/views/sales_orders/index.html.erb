@@ -1,16 +1,37 @@
-<p style="color: green"><%= notice %></p>
+<% content_for :title, "Órdenes de venta" %>
 
-<% content_for :title, "Sales orders" %>
+<%= render PageHeaderComponent.new(title: "Órdenes de venta") do %>
+  <%= link_to "+ Nueva orden", new_sales_order_path, class: "btn btn-primary" %>
+<% end %>
 
-<h1>Sales orders</h1>
-
-<div id="sales_orders">
-  <% @sales_orders.each do |sales_order| %>
-    <%= render sales_order %>
-    <p>
-      <%= link_to "Show this sales order", sales_order %>
-    </p>
-  <% end %>
+<div class="table-responsive">
+  <table class="table table-hover align-middle">
+    <thead class="table-light">
+      <tr>
+        <th>Referencia</th>
+        <th>Negocio</th>
+        <th>Cliente</th>
+        <th>Cond. pago</th>
+        <th>Estado pago</th>
+        <th>Total</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      <% @sales_orders.each do |order| %>
+        <tr>
+          <td><%= order.reference_number %></td>
+          <td><%= order.business&.name %></td>
+          <td><%= order.customer_name %></td>
+          <td><span class="badge bg-info text-dark"><%= order.payment_condition %></span></td>
+          <td><span class="badge bg-secondary"><%= order.payment_status %></span></td>
+          <td><%= number_to_currency(order.total, unit: order.business&.currency || "$", separator: ",", delimiter: ".") %></td>
+          <td class="text-end">
+            <%= link_to "Ver", order, class: "btn btn-sm btn-outline-primary" %>
+            <%= link_to "Editar", edit_sales_order_path(order), class: "btn btn-sm btn-outline-secondary" %>
+          </td>
+        </tr>
+      <% end %>
+    </tbody>
+  </table>
 </div>
-
-<%= link_to "New sales order", new_sales_order_path %>

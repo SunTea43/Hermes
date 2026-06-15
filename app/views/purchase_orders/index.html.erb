@@ -1,16 +1,35 @@
-<p style="color: green"><%= notice %></p>
+<% content_for :title, "Órdenes de compra" %>
 
-<% content_for :title, "Purchase orders" %>
+<%= render PageHeaderComponent.new(title: "Órdenes de compra") do %>
+  <%= link_to "+ Nueva orden", new_purchase_order_path, class: "btn btn-primary" %>
+<% end %>
 
-<h1>Purchase orders</h1>
-
-<div id="purchase_orders">
-  <% @purchase_orders.each do |purchase_order| %>
-    <%= render purchase_order %>
-    <p>
-      <%= link_to "Show this purchase order", purchase_order %>
-    </p>
-  <% end %>
+<div class="table-responsive">
+  <table class="table table-hover align-middle">
+    <thead class="table-light">
+      <tr>
+        <th>Referencia</th>
+        <th>Negocio</th>
+        <th>Proveedor</th>
+        <th>Estado</th>
+        <th>Recepción</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      <% @purchase_orders.each do |order| %>
+        <tr>
+          <td><%= order.reference_number %></td>
+          <td><%= order.business&.name %></td>
+          <td><%= order.supplier_name %></td>
+          <td><span class="badge bg-secondary"><%= order.status %></span></td>
+          <td><%= order.received_at&.strftime("%d/%m/%Y") || "—" %></td>
+          <td class="text-end">
+            <%= link_to "Ver", order, class: "btn btn-sm btn-outline-primary" %>
+            <%= link_to "Editar", edit_purchase_order_path(order), class: "btn btn-sm btn-outline-secondary" %>
+          </td>
+        </tr>
+      <% end %>
+    </tbody>
+  </table>
 </div>
-
-<%= link_to "New purchase order", new_purchase_order_path %>

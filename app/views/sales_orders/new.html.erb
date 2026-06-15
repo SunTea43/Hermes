@@ -1,11 +1,7 @@
-<% content_for :title, "New sales order" %>
+<% content_for :title, "Nueva orden de venta" %>
 
-<h1>New sales order</h1>
+<%= render PageHeaderComponent.new(title: "Nueva orden de venta") %>
 
-<%= render "form", sales_order: @sales_order %>
-
-<br>
-
-<div>
-  <%= link_to "Back to sales orders", sales_orders_path %>
-</div>
+<%= render CardComponent.new(css_class: "col-lg-8") do %>
+  <%= render "form", sales_order: @sales_order %>
+<% end %>

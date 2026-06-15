@@ -1,52 +1,42 @@
-<%= form_with(model: purchase_order) do |form| %>
-  <% if purchase_order.errors.any? %>
-    <div style="color: red">
-      <h2><%= pluralize(purchase_order.errors.count, "error") %> prohibited this purchase_order from being saved:</h2>
+<%= simple_form_for(purchase_order) do |f| %>
+  <%= f.error_notification %>
+  <%= f.error_notification message: f.object.errors[:base].to_sentence if f.object.errors[:base].present? %>
 
-      <ul>
-        <% purchase_order.errors.each do |error| %>
-          <li><%= error.full_message %></li>
-        <% end %>
-      </ul>
-    </div>
-  <% end %>
+  <%= f.association :business,
+      collection: policy_scope(Business).order(:name),
+      label_method: :name,
+      value_method: :id,
+      prompt: "Selecciona un negocio",
+      label: "Negocio" %>
 
-  <div>
-    <%= form.label :business_id, style: "display: block" %>
-    <%= form.text_field :business_id %>
-  </div>
+  <%= f.input :reference_number, label: "Número de referencia", hint: "Ej: OC-2024-001" %>
 
-  <div>
-    <%= form.label :reference_number, style: "display: block" %>
-    <%= form.text_field :reference_number %>
-  </div>
+  <%= f.association :created_by,
+      collection: User.order(:name, :email),
+      label_method: ->(u) { u.name.presence || u.email },
+      value_method: :id,
+      prompt: "Selecciona un responsable",
+      label: "Creado por",
+      required: false %>
 
-  <div>
-    <%= form.label :created_by_id, style: "display: block" %>
-    <%= form.text_field :created_by_id %>
-  </div>
+  <%= f.input :supplier_name, label: "Nombre del proveedor" %>
 
-  <div>
-    <%= form.label :supplier_name, style: "display: block" %>
-    <%= form.text_field :supplier_name %>
-  </div>
+  <%= f.input :status, as: :select,
+      collection: PurchaseOrder::STATUSES,
+      label: "Estado",
+      prompt: "Selecciona un estado" %>
 
-  <div>
-    <%= form.label :status, style: "display: block" %>
-    <%= form.text_field :status %>
-  </div>
+  <%= f.input :received_at, as: :datetime,
+      label: "Fecha de recepción",
+      required: false %>
 
-  <div>
-    <%= form.label :received_at, style: "display: block" %>
-    <%= form.datetime_field :received_at %>
-  </div>
+  <%= f.input :notes, as: :text,
+      label: "Notas",
+      input_html: { rows: 3 },
+      required: false %>
 
-  <div>
-    <%= form.label :notes, style: "display: block" %>
-    <%= form.textarea :notes %>
-  </div>
-
-  <div>
-    <%= form.submit %>
+  <div class="mt-3">
+    <%= f.button :submit, class: "btn btn-primary" %>
+    <%= link_to "Cancelar", purchase_orders_path, class: "btn btn-outline-secondary ms-2" %>
   </div>
 <% end %>

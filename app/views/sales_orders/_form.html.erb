@@ -1,67 +1,53 @@
-<%= form_with(model: sales_order) do |form| %>
-  <% if sales_order.errors.any? %>
-    <div style="color: red">
-      <h2><%= pluralize(sales_order.errors.count, "error") %> prohibited this sales_order from being saved:</h2>
+<%= simple_form_for(sales_order) do |f| %>
+  <%= f.error_notification %>
+  <%= f.error_notification message: f.object.errors[:base].to_sentence if f.object.errors[:base].present? %>
 
-      <ul>
-        <% sales_order.errors.each do |error| %>
-          <li><%= error.full_message %></li>
-        <% end %>
-      </ul>
-    </div>
-  <% end %>
+  <%= f.association :business,
+      collection: policy_scope(Business).order(:name),
+      label_method: :name,
+      value_method: :id,
+      prompt: "Selecciona un negocio",
+      label: "Negocio" %>
 
-  <div>
-    <%= form.label :business_id, style: "display: block" %>
-    <%= form.text_field :business_id %>
-  </div>
+  <%= f.input :reference_number, label: "Número de referencia", hint: "Ej: OV-2024-001" %>
 
-  <div>
-    <%= form.label :reference_number, style: "display: block" %>
-    <%= form.text_field :reference_number %>
-  </div>
+  <%= f.association :created_by,
+      collection: User.order(:name, :email),
+      label_method: ->(u) { u.name.presence || u.email },
+      value_method: :id,
+      prompt: "Selecciona un responsable",
+      label: "Creado por",
+      required: false %>
 
-  <div>
-    <%= form.label :created_by_id, style: "display: block" %>
-    <%= form.text_field :created_by_id %>
-  </div>
+  <%= f.input :customer_name, label: "Nombre del cliente" %>
+  <%= f.input :customer_identifier, label: "Identificación del cliente", required: false %>
 
-  <div>
-    <%= form.label :customer_name, style: "display: block" %>
-    <%= form.text_field :customer_name %>
-  </div>
+  <%= f.input :payment_condition, as: :select,
+      collection: SalesOrder::PAYMENT_CONDITIONS,
+      label: "Condición de pago",
+      prompt: "Selecciona una condición" %>
 
-  <div>
-    <%= form.label :customer_identifier, style: "display: block" %>
-    <%= form.text_field :customer_identifier %>
-  </div>
+  <%= f.input :payment_status, as: :select,
+      collection: SalesOrder::PAYMENT_STATUSES,
+      label: "Estado de pago",
+      prompt: "Selecciona un estado" %>
 
-  <div>
-    <%= form.label :payment_condition, style: "display: block" %>
-    <%= form.text_field :payment_condition %>
-  </div>
+  <%= f.input :payment_due_at, as: :datetime,
+      label: "Vencimiento de pago",
+      required: false %>
 
-  <div>
-    <%= form.label :payment_status, style: "display: block" %>
-    <%= form.text_field :payment_status %>
-  </div>
+  <%= f.input :total, as: :decimal,
+      label: "Total",
+      input_html: { step: "0.01" },
+      required: false %>
 
-  <div>
-    <%= form.label :payment_due_at, style: "display: block" %>
-    <%= form.datetime_field :payment_due_at %>
-  </div>
+  <%= f.input :notes, as: :text,
+      label: "Notas",
+      input_html: { rows: 3 },
+      required: false %>
 
-  <div>
-    <%= form.label :total, style: "display: block" %>
-    <%= form.text_field :total %>
-  </div>
-
-  <div>
-    <%= form.label :notes, style: "display: block" %>
-    <%= form.textarea :notes %>
-  </div>
-
-  <div>
-    <%= form.submit %>
+  <div class="mt-3">
+    <%= f.button :submit, class: "btn btn-primary" %>
+    <%= link_to "Cancelar", sales_orders_path, class: "btn btn-outline-secondary ms-2" %>
   </div>
 <% end %>

@@ -1,4 +1,8 @@
 class SalesOrder < ApplicationRecord
+  STATUSES = %w[pending completed cancelled].freeze
+  PAYMENT_CONDITIONS = %w[cash credit].freeze
+  PAYMENT_STATUSES = %w[pending partial paid cancelled].freeze
+
   belongs_to :business
   belongs_to :created_by, class_name: "User", optional: true
 
