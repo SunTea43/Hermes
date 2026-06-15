@@ -45,4 +45,12 @@ class BusinessesControllerTest < ActionDispatch::IntegrationTest
 
     assert_redirected_to businesses_url
   end
+
+  test "should not create business with non-existent owner_id" do
+    assert_no_difference("Business.count") do
+      post businesses_url, params: { business: { name: "Test", currency: "COP", owner_id: 0 } }
+    end
+
+    assert_response :unprocessable_content
+  end
 end
