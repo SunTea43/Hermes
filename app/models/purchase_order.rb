@@ -5,4 +5,7 @@ class PurchaseOrder < ApplicationRecord
   belongs_to :created_by, class_name: "User", optional: true
 
   has_many :purchase_order_items, dependent: :destroy
+  accepts_nested_attributes_for :purchase_order_items,
+    allow_destroy: true,
+    reject_if: :all_blank
 end

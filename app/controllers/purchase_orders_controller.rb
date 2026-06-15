@@ -14,6 +14,7 @@ class PurchaseOrdersController < ApplicationController
   # GET /purchase_orders/new
   def new
     @purchase_order = PurchaseOrder.new
+    @purchase_order.purchase_order_items.build
     authorize @purchase_order
   end
 
@@ -72,6 +73,7 @@ class PurchaseOrdersController < ApplicationController
 
     # Only allow a list of trusted parameters through.
     def purchase_order_params
-      params.expect(purchase_order: [ :business_id, :reference_number, :created_by_id, :supplier_name, :status, :received_at, :notes ])
+      params.expect(purchase_order: [ :business_id, :reference_number, :created_by_id, :supplier_name, :status, :received_at, :notes,
+        purchase_order_items_attributes: [ :id, :product_id, :quantity, :unit_price, :notes, :_destroy ] ])
     end
 end

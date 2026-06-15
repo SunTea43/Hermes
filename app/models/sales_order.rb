@@ -8,4 +8,7 @@ class SalesOrder < ApplicationRecord
 
   has_many :sales_order_items, dependent: :destroy
   has_many :payments, dependent: :destroy
+  accepts_nested_attributes_for :sales_order_items,
+    allow_destroy: true,
+    reject_if: :all_blank
 end

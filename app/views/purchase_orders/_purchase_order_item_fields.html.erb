@@ -1,0 +1,41 @@
+<div class="row g-2 align-items-end border rounded p-2 mb-2" data-nested-item>
+  <%= f.hidden_field :id %>
+  <%= f.hidden_field :_destroy %>
+
+  <div class="col-md-5">
+    <%= f.label :product_id, "Producto", class: "form-label small mb-1" %>
+    <%= f.collection_select :product_id,
+        Product.order(:name), :id, :name,
+        { prompt: "Selecciona un producto" },
+        { class: "form-select form-select-sm" } %>
+  </div>
+
+  <div class="col-md-2">
+    <%= f.label :quantity, "Cantidad", class: "form-label small mb-1" %>
+    <%= f.number_field :quantity,
+        step: "0.001", min: 0,
+        class: "form-control form-control-sm",
+        placeholder: "0" %>
+  </div>
+
+  <div class="col-md-2">
+    <%= f.label :unit_price, "Precio unit.", class: "form-label small mb-1" %>
+    <%= f.number_field :unit_price,
+        step: "0.01", min: 0,
+        class: "form-control form-control-sm",
+        placeholder: "0.00" %>
+  </div>
+
+  <div class="col-md-2">
+    <%= f.label :notes, "Nota", class: "form-label small mb-1" %>
+    <%= f.text_field :notes,
+        class: "form-control form-control-sm",
+        placeholder: "Opcional" %>
+  </div>
+
+  <div class="col-md-1 d-flex align-items-end">
+    <button type="button"
+            class="btn btn-outline-danger btn-sm w-100"
+            data-action="nested-form#removeItem">✕</button>
+  </div>
+</div>

@@ -14,6 +14,7 @@ class SalesOrdersController < ApplicationController
   # GET /sales_orders/new
   def new
     @sales_order = SalesOrder.new
+    @sales_order.sales_order_items.build
     authorize @sales_order
   end
 
@@ -72,6 +73,7 @@ class SalesOrdersController < ApplicationController
 
     # Only allow a list of trusted parameters through.
     def sales_order_params
-      params.expect(sales_order: [ :business_id, :reference_number, :created_by_id, :customer_name, :customer_identifier, :payment_condition, :payment_status, :payment_due_at, :total, :notes ])
+      params.expect(sales_order: [ :business_id, :reference_number, :created_by_id, :customer_name, :customer_identifier, :payment_condition, :payment_status, :payment_due_at, :total, :notes,
+        sales_order_items_attributes: [ :id, :product_id, :quantity, :unit_price, :discount, :_destroy ] ])
     end
 end

@@ -35,6 +35,29 @@
       input_html: { rows: 3 },
       required: false %>
 
+  <hr class="my-4">
+  <h6 class="mb-3 fw-semibold">Productos de la orden</h6>
+
+  <div data-controller="nested-form">
+    <div data-nested-form-target="container">
+      <%= f.fields_for :purchase_order_items do |item_f| %>
+        <%= render "purchase_order_item_fields", f: item_f %>
+      <% end %>
+    </div>
+
+    <template data-nested-form-target="template">
+      <%= f.fields_for :purchase_order_items, PurchaseOrderItem.new, child_index: "NEW_RECORD" do |item_f| %>
+        <%= render "purchase_order_item_fields", f: item_f %>
+      <% end %>
+    </template>
+
+    <button type="button"
+            class="btn btn-outline-secondary btn-sm mb-3"
+            data-action="nested-form#addItem">
+      + Agregar producto
+    </button>
+  </div>
+
   <div class="mt-3">
     <%= f.button :submit, class: "btn btn-primary" %>
     <%= link_to "Cancelar", purchase_orders_path, class: "btn btn-outline-secondary ms-2" %>
