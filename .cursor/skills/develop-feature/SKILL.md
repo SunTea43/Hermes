@@ -14,6 +14,7 @@ Crea este checklist al inicio y actualízalo mientras avanzas:
 
 ```
 - [ ] Leer specs y determinar qué hay que construir
+- [ ] Crear worktree para desarrollo en paralelo (/parallel-development)
 - [ ] Migración (si el schema cambia)
 - [ ] Modelo(s) y asociaciones
 - [ ] Policy Pundit (si el recurso requiere autorización)
