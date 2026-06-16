@@ -9,6 +9,7 @@ class SalesOrdersController < ApplicationController
   # GET /sales_orders/1 or /sales_orders/1.json
   def show
     authorize @sales_order
+    @sales_order = @sales_order.includes_detail
   end
 
   # GET /sales_orders/new

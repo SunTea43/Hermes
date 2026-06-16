@@ -1,43 +1,218 @@
-<%= render PageHeaderComponent.new(title: "Orden de venta: #{@sales_order.reference_number}") do %>
+<% content_for :title, "Orden #{@sales_order.reference_number}" %>
+
+<%
+  currency = @sales_order.business&.currency || "$"
+  paid     = @sales_order.amount_paid
+  due      = @sales_order.amount_due
+
+  payment_badge = case @sales_order.payment_status
+    when "paid"      then { label: "Pagada",   css: "success" }
+    when "partial"   then { label: "Parcial",  css: "warning" }
+    when "cancelled" then { label: "Cancelada", css: "secondary" }
+    else                  { label: "Pendiente", css: "danger" }
+  end
+%>
+
+<%= render PageHeaderComponent.new(title: "Orden de venta #{@sales_order.reference_number}") do %>
   <div class="d-flex gap-2">
     <%= link_to "Editar", edit_sales_order_path(@sales_order), class: "btn btn-outline-secondary btn-sm" %>
     <%= button_to "Eliminar", @sales_order, method: :delete,
         class: "btn btn-outline-danger btn-sm",
-        form: { data: { turbo_confirm: "¿Estás seguro?" } } %>
+        form: { data: { turbo_confirm: "¿Eliminar esta orden?" } } %>
   </div>
 <% end %>
 
+<%# ── Encabezado de la orden ──────────────────────────────── %>
 <%= render CardComponent.new do %>
-  <dl class="row mb-0">
-    <dt class="col-sm-3">Negocio</dt>
-    <dd class="col-sm-9"><%= @sales_order.business&.name || "—" %></dd>
+  <div class="row g-3">
+    <div class="col-md-6">
+      <dl class="row mb-0">
+        <dt class="col-5 text-muted">Cliente</dt>
+        <dd class="col-7 fw-semibold"><%= @sales_order.customer_name %></dd>
 
-    <dt class="col-sm-3">Cliente</dt>
-    <dd class="col-sm-9"><%= @sales_order.customer_name %></dd>
+        <% if @sales_order.customer_identifier.present? %>
+          <dt class="col-5 text-muted">Identificación</dt>
+          <dd class="col-7"><%= @sales_order.customer_identifier %></dd>
+        <% end %>
 
-    <dt class="col-sm-3">Identificación</dt>
-    <dd class="col-sm-9"><%= @sales_order.customer_identifier.presence || "—" %></dd>
+        <dt class="col-5 text-muted">Negocio</dt>
+        <dd class="col-7"><%= @sales_order.business&.name || "—" %></dd>
 
-    <dt class="col-sm-3">Condición de pago</dt>
-    <dd class="col-sm-9"><%= @sales_order.payment_condition %></dd>
+        <dt class="col-5 text-muted">Creado por</dt>
+        <dd class="col-7"><%= @sales_order.created_by&.name.presence || @sales_order.created_by&.email || "—" %></dd>
 
-    <dt class="col-sm-3">Estado de pago</dt>
-    <dd class="col-sm-9"><span class="badge bg-secondary"><%= @sales_order.payment_status %></span></dd>
+        <dt class="col-5 text-muted">Fecha</dt>
+        <dd class="col-7"><%= @sales_order.created_at.strftime("%d/%m/%Y %H:%M") %></dd>
 
-    <dt class="col-sm-3">Vencimiento</dt>
-    <dd class="col-sm-9"><%= @sales_order.payment_due_at&.strftime("%d/%m/%Y") || "—" %></dd>
+        <% if @sales_order.notes.present? %>
+          <dt class="col-5 text-muted">Notas</dt>
+          <dd class="col-7 fst-italic text-muted"><%= @sales_order.notes %></dd>
+        <% end %>
+      </dl>
+    </div>
 
-    <dt class="col-sm-3">Total</dt>
-    <dd class="col-sm-9"><strong><%= number_to_currency(@sales_order.total, unit: @sales_order.business&.currency || "$", separator: ",", delimiter: ".") %></strong></dd>
+    <div class="col-md-6">
+      <dl class="row mb-0">
+        <dt class="col-5 text-muted">Condición de pago</dt>
+        <dd class="col-7">
+          <% if @sales_order.payment_condition == "credit" %>
+            <span class="badge bg-warning text-dark">Crédito</span>
+          <% else %>
+            <span class="badge bg-success">Contado</span>
+          <% end %>
+        </dd>
 
-    <dt class="col-sm-3">Creado por</dt>
-    <dd class="col-sm-9"><%= @sales_order.created_by&.name.presence || @sales_order.created_by&.email || "—" %></dd>
+        <dt class="col-5 text-muted">Estado</dt>
+        <dd class="col-7">
+          <span class="badge bg-<%= payment_badge[:css] %>"><%= payment_badge[:label] %></span>
+        </dd>
 
-    <dt class="col-sm-3">Notas</dt>
-    <dd class="col-sm-9"><%= @sales_order.notes.presence || "—" %></dd>
-  </dl>
+        <% if @sales_order.payment_due_at.present? %>
+          <dt class="col-5 text-muted">Vencimiento</dt>
+          <dd class="col-7">
+            <%= @sales_order.payment_due_at.strftime("%d/%m/%Y") %>
+            <% if @sales_order.payment_due_at < Time.current && @sales_order.payment_status != "paid" %>
+              <span class="badge bg-danger ms-1">Vencida</span>
+            <% end %>
+          </dd>
+        <% end %>
+
+        <dt class="col-5 text-muted">Total orden</dt>
+        <dd class="col-7 fw-bold fs-5">
+          <%= number_to_currency(@sales_order.total, unit: "#{currency} ", separator: ",", delimiter: ".", format: "%u%n") %>
+        </dd>
+
+        <% if paid > 0 %>
+          <dt class="col-5 text-muted">Pagado</dt>
+          <dd class="col-7 text-success fw-semibold">
+            <%= number_to_currency(paid, unit: "#{currency} ", separator: ",", delimiter: ".", format: "%u%n") %>
+          </dd>
+
+          <dt class="col-5 text-muted">Por cobrar</dt>
+          <dd class="col-7 <%= due > 0 ? 'text-danger fw-semibold' : 'text-success' %>">
+            <%= number_to_currency(due, unit: "#{currency} ", separator: ",", delimiter: ".", format: "%u%n") %>
+          </dd>
+        <% end %>
+      </dl>
+    </div>
+  </div>
+<% end %>
+
+<%# ── Productos de la orden ───────────────────────────────── %>
+<%= render CardComponent.new(title: "Productos") do %>
+  <% if @sales_order.sales_order_items.any? %>
+    <div class="table-responsive">
+      <table class="table align-middle mb-0">
+        <thead class="table-light">
+          <tr>
+            <th>Producto</th>
+            <th class="text-end">Cantidad</th>
+            <th class="text-end">Precio unitario</th>
+            <th class="text-end">Descuento</th>
+            <th class="text-end">Subtotal</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% @sales_order.sales_order_items.each do |item| %>
+            <tr>
+              <td>
+                <strong><%= item.product.name %></strong>
+                <% if item.product.description.present? %>
+                  <br><small class="text-muted"><%= item.product.description.truncate(60) %></small>
+                <% end %>
+              </td>
+              <td class="text-end">
+                <%= number_with_precision(item.quantity, precision: 2, strip_insignificant_zeros: true) %>
+                <small class="text-muted"><%= item.product.unit_measure %></small>
+              </td>
+              <td class="text-end">
+                <%= number_to_currency(item.unit_price, unit: "#{currency} ", separator: ",", delimiter: ".", format: "%u%n") %>
+              </td>
+              <td class="text-end">
+                <% if item.discount.to_f > 0 %>
+                  <span class="text-warning">-<%= number_with_precision(item.discount, precision: 1, strip_insignificant_zeros: true) %>%</span>
+                <% else %>
+                  <span class="text-muted">—</span>
+                <% end %>
+              </td>
+              <td class="text-end fw-semibold">
+                <%= number_to_currency(item.subtotal, unit: "#{currency} ", separator: ",", delimiter: ".", format: "%u%n") %>
+              </td>
+            </tr>
+          <% end %>
+        </tbody>
+        <tfoot class="table-light">
+          <tr>
+            <td colspan="4" class="text-end fw-bold">Total</td>
+            <td class="text-end fw-bold fs-6">
+              <%= number_to_currency(@sales_order.total, unit: "#{currency} ", separator: ",", delimiter: ".", format: "%u%n") %>
+            </td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+  <% else %>
+    <p class="text-muted mb-0">Esta orden no tiene productos registrados.</p>
+  <% end %>
+<% end %>
+
+<%# ── Pagos registrados ───────────────────────────────────── %>
+<% if @sales_order.payments.any? %>
+  <%= render CardComponent.new(title: "Pagos recibidos") do %>
+    <div class="table-responsive">
+      <table class="table table-sm align-middle mb-0">
+        <thead class="table-light">
+          <tr>
+            <th>Fecha</th>
+            <th>Tipo</th>
+            <th>Método</th>
+            <th>Registrado por</th>
+            <th class="text-end">Monto</th>
+            <th>Notas</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% @sales_order.payments.each do |payment| %>
+            <% next if payment.payment_status == "voided" %>
+            <tr>
+              <td><small><%= payment.paid_at&.strftime("%d/%m/%Y") || "—" %></small></td>
+              <td>
+                <% type_label = { "deposit" => "Abono", "settlement" => "Liquidación", "refund" => "Devolución", "adjustment" => "Ajuste" }
+                   method_label = { "cash" => "💵 Efectivo", "transfer" => "🏦 Transferencia", "other" => "Otro" } %>
+                <span class="badge bg-info text-dark"><%= type_label[payment.payment_type] || payment.payment_type %></span>
+              </td>
+              <td><small><%= method_label[payment.payment_method] || payment.payment_method || "—" %></small></td>
+              <td><small><%= payment.recorded_by&.name.presence || payment.recorded_by&.email || "—" %></small></td>
+              <td class="text-end fw-semibold text-success">
+                <%= number_to_currency(payment.amount, unit: "#{currency} ", separator: ",", delimiter: ".", format: "%u%n") %>
+              </td>
+              <td><small class="text-muted"><%= payment.notes.presence || "—" %></small></td>
+            </tr>
+          <% end %>
+        </tbody>
+        <tfoot class="table-light">
+          <tr>
+            <td colspan="4" class="text-end fw-bold">Total pagado</td>
+            <td class="text-end fw-bold text-success">
+              <%= number_to_currency(paid, unit: "#{currency} ", separator: ",", delimiter: ".", format: "%u%n") %>
+            </td>
+            <td></td>
+          </tr>
+          <% if due > 0 %>
+            <tr>
+              <td colspan="4" class="text-end fw-bold text-danger">Saldo pendiente</td>
+              <td class="text-end fw-bold text-danger">
+                <%= number_to_currency(due, unit: "#{currency} ", separator: ",", delimiter: ".", format: "%u%n") %>
+              </td>
+              <td></td>
+            </tr>
+          <% end %>
+        </tfoot>
+      </table>
+    </div>
+  <% end %>
 <% end %>
 
 <div class="mt-3">
-  <%= link_to "← Volver", sales_orders_path, class: "text-muted" %>
+  <%= link_to "← Volver a ventas", sales_orders_path, class: "text-muted" %>
 </div>

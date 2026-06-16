@@ -12,6 +12,14 @@ class SalesOrder < ApplicationRecord
     allow_destroy: true,
     reject_if: :all_blank
 
+  def self.includes_detail
+    includes(sales_order_items: :product, payments: :recorded_by, business: [], created_by: [])
+  end
+
+  def includes_detail
+    self.class.where(id: id).includes_detail.first
+  end
+
   def recalculate_total!
     update_columns(total: sales_order_items.sum(:subtotal))
   end
