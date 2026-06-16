@@ -73,3 +73,4 @@ group :test do
 end
 
 gem "roo", "~> 3.0"
+gem "twilio-ruby", "~> 7.0"

@@ -10,6 +10,14 @@
 #     schedule: at 5am every day
 
 production:
+  low_stock_alert:
+    class: LowStockAlertJob
+    schedule: "0 8 * * *"
+
+  portfolio_reminder:
+    class: PortfolioReminderJob
+    schedule: "0 9 * * *"
+
   clear_solid_queue_finished_jobs:
     command: "SolidQueue::Job.clear_finished_in_batches(sleep_between_batches: 0.3)"
     schedule: every hour at minute 12
