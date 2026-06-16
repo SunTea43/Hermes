@@ -1,10 +1,139 @@
-<p style="color: green"><%= notice %></p>
+<% content_for :title, "Inventario: #{@inventory.product.name}" %>
 
-<%= render @inventory %>
+<%
+  ratio  = @inventory.minimum_alert_quantity > 0 ? @inventory.current_quantity / @inventory.minimum_alert_quantity : 1
+  status = if @inventory.current_quantity <= 0
+    { label: "Sin stock", css: "danger", icon: "🔴", bar: 0 }
+  elsif ratio < 1
+    { label: "Bajo mínimo", css: "warning", icon: "⚠️", bar: [(ratio * 100).to_i, 100].min }
+  else
+    { label: "Normal", css: "success", icon: "✅", bar: [100, (ratio * 100).to_i].min }
+  end
+%>
 
-<div>
-  <%= link_to "Edit this inventory", edit_inventory_path(@inventory) %> |
-  <%= link_to "Back to inventories", inventories_path %>
+<%= render PageHeaderComponent.new(title: "#{@inventory.product.name}") do %>
+  <div class="d-flex gap-2">
+    <%= link_to "Editar mínimo", edit_inventory_path(@inventory), class: "btn btn-outline-secondary btn-sm" %>
+    <%= link_to "← Inventario", inventories_path, class: "btn btn-outline-secondary btn-sm" %>
+  </div>
+<% end %>
 
-  <%= button_to "Destroy this inventory", @inventory, method: :delete %>
+<div class="row g-3 mb-4">
+  <%# ── Stock actual ── %>
+  <div class="col-md-4">
+    <%= render CardComponent.new do %>
+      <div class="text-center py-2">
+        <div class="display-5 fw-bold text-<%= status[:css] %>">
+          <%= number_with_precision(@inventory.current_quantity, precision: 2, strip_insignificant_zeros: true) %>
+          <small class="fs-6 text-muted"><%= @inventory.product.unit_measure %></small>
+        </div>
+        <div class="mt-1">
+          <span class="badge bg-<%= status[:css] %>"><%= status[:icon] %> <%= status[:label] %></span>
+        </div>
+        <div class="text-muted small mt-2">Stock actual</div>
+      </div>
+
+      <div class="progress mt-3" style="height: 8px;">
+        <div class="progress-bar bg-<%= status[:css] %>"
+             role="progressbar"
+             style="width: <%= status[:bar] %>%"
+             aria-valuenow="<%= status[:bar] %>"
+             aria-valuemin="0"
+             aria-valuemax="100">
+        </div>
+      </div>
+      <div class="d-flex justify-content-between small text-muted mt-1">
+        <span>0</span>
+        <span>Mín. <%= @inventory.minimum_alert_quantity %></span>
+      </div>
+    <% end %>
+  </div>
+
+  <%# ── Información del producto ── %>
+  <div class="col-md-8">
+    <%= render CardComponent.new(title: "Detalles") do %>
+      <dl class="row mb-0">
+        <dt class="col-sm-4">Negocio</dt>
+        <dd class="col-sm-8"><%= @inventory.business.name %></dd>
+
+        <dt class="col-sm-4">Descripción</dt>
+        <dd class="col-sm-8"><%= @inventory.product.description.presence || "—" %></dd>
+
+        <dt class="col-sm-4">Unidad</dt>
+        <dd class="col-sm-8"><span class="badge bg-secondary"><%= @inventory.product.unit_measure %></span></dd>
+
+        <dt class="col-sm-4">Stock mínimo</dt>
+        <dd class="col-sm-8">
+          <%= @inventory.minimum_alert_quantity %> <%= @inventory.product.unit_measure %>
+        </dd>
+
+        <dt class="col-sm-4">Última actualización</dt>
+        <dd class="col-sm-8">
+          <%= @inventory.last_updated_at ? "#{time_ago_in_words(@inventory.last_updated_at)} ago (#{@inventory.last_updated_at.strftime('%d/%m/%Y %H:%M')})" : "—" %>
+        </dd>
+      </dl>
+    <% end %>
+  </div>
 </div>
+
+<%# ── Historial de movimientos ── %>
+<%= render CardComponent.new(title: "Últimos movimientos") do %>
+  <% if @movements.any? %>
+    <div class="table-responsive">
+      <table class="table table-sm align-middle mb-0">
+        <thead class="table-light">
+          <tr>
+            <th>Tipo</th>
+            <th class="text-end">Anterior</th>
+            <th class="text-end">Nuevo</th>
+            <th class="text-end">Cambio</th>
+            <th>Referencia</th>
+            <th>Usuario</th>
+            <th>Fecha</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% @movements.each do |mov| %>
+            <%
+              delta     = mov.new_quantity - mov.previous_quantity
+              delta_css = delta >= 0 ? "success" : "danger"
+              delta_sign = delta >= 0 ? "+" : ""
+              type_labels = {
+                "purchase_entry" => { label: "Entrada compra", css: "success", icon: "📥" },
+                "sale_exit"      => { label: "Salida venta",   css: "danger",  icon: "📤" },
+                "adjustment"     => { label: "Ajuste",         css: "warning", icon: "🔧" },
+              }
+              type_info = type_labels[mov.movement_type] || { label: mov.movement_type, css: "secondary", icon: "•" }
+            %>
+            <tr>
+              <td>
+                <span class="badge bg-<%= type_info[:css] %>">
+                  <%= type_info[:icon] %> <%= type_info[:label] %>
+                </span>
+              </td>
+              <td class="text-end text-muted"><%= number_with_precision(mov.previous_quantity, precision: 2, strip_insignificant_zeros: true) %></td>
+              <td class="text-end fw-bold"><%= number_with_precision(mov.new_quantity, precision: 2, strip_insignificant_zeros: true) %></td>
+              <td class="text-end text-<%= delta_css %> fw-bold">
+                <%= delta_sign %><%= number_with_precision(delta, precision: 2, strip_insignificant_zeros: true) %>
+              </td>
+              <td>
+                <% if mov.reference_type.present? %>
+                  <small class="text-muted"><%= mov.reference_type %> #<%= mov.reference_id %></small>
+                <% else %>
+                  <span class="text-muted">—</span>
+                <% end %>
+                <% if mov.notes.present? %>
+                  <br><small class="text-muted fst-italic"><%= mov.notes.truncate(50) %></small>
+                <% end %>
+              </td>
+              <td><small><%= mov.user&.name.presence || mov.user&.email || "—" %></small></td>
+              <td><small class="text-muted"><%= mov.moved_at&.strftime("%d/%m/%Y %H:%M") || "—" %></small></td>
+            </tr>
+          <% end %>
+        </tbody>
+      </table>
+    </div>
+  <% else %>
+    <p class="text-muted mb-0">Sin movimientos registrados todavía.</p>
+  <% end %>
+<% end %>

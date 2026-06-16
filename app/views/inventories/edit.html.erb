@@ -1,12 +1,9 @@
-<% content_for :title, "Editing inventory" %>
+<% content_for :title, "Editar inventario" %>
 
-<h1>Editing inventory</h1>
+<%= render PageHeaderComponent.new(title: "Editar stock mínimo: #{@inventory.product.name}") do %>
+  <%= link_to "← Ver inventario", @inventory, class: "btn btn-outline-secondary btn-sm" %>
+<% end %>
 
-<%= render "form", inventory: @inventory %>
-
-<br>
-
-<div>
-  <%= link_to "Show this inventory", @inventory %> |
-  <%= link_to "Back to inventories", inventories_path %>
-</div>
+<%= render CardComponent.new do %>
+  <%= render "form", inventory: @inventory %>
+<% end %>

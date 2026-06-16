@@ -1,11 +1,7 @@
-<% content_for :title, "New inventory" %>
+<% content_for :title, "Nuevo inventario" %>
 
-<h1>New inventory</h1>
+<%= render PageHeaderComponent.new(title: "Registrar inventario manual") %>
 
-<%= render "form", inventory: @inventory %>
-
-<br>
-
-<div>
-  <%= link_to "Back to inventories", inventories_path %>
-</div>
+<%= render CardComponent.new do %>
+  <%= render "form", inventory: @inventory %>
+<% end %>

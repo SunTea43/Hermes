@@ -3,12 +3,20 @@ class InventoriesController < ApplicationController
 
   # GET /inventories or /inventories.json
   def index
-    @inventories = policy_scope(Inventory)
+    @inventories = policy_scope(Inventory).includes(:product, :business).order("products.name")
+
+    @total_products  = @inventories.count
+    @below_minimum   = @inventories.select { |i| i.current_quantity < i.minimum_alert_quantity }
+    @out_of_stock    = @inventories.select { |i| i.current_quantity <= 0 }
   end
 
   # GET /inventories/1 or /inventories/1.json
   def show
     authorize @inventory
+    @movements = @inventory.inventory_movements
+                           .includes(:user)
+                           .order(moved_at: :desc)
+                           .limit(20)
   end
 
   # GET /inventories/new
