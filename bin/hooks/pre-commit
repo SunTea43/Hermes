@@ -1,0 +1,21 @@
+#!/usr/bin/env bash
+set -e
+
+# Obtener solo los archivos .rb staged (no eliminados)
+STAGED=$(git diff --cached --name-only --diff-filter=ACM | grep '\.rb$' || true)
+
+if [ -z "$STAGED" ]; then
+  exit 0
+fi
+
+echo "🔍 Rubocop en archivos staged..."
+bundle exec rubocop --format progress $STAGED
+
+if [ $? -ne 0 ]; then
+  echo ""
+  echo "❌ Rubocop encontró ofensas. Corregí los errores antes de commitear."
+  echo "   Tip: bundle exec rubocop -a $STAGED"
+  exit 1
+fi
+
+echo "✅ Rubocop OK"
