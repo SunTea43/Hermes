@@ -1,0 +1,15 @@
+---
+description: Preferencias generales del agente en Hermes
+alwaysApply: true
+---
+
+# Preferencias del agente
+
+## Git: sin commits automáticos
+
+- **No hacer `git commit` ni `git push`** salvo que el usuario lo pida explícitamente.
+- **No incluir commits como parte del flujo del agente**: terminar la tarea con el código listo, no con un commit.
+- **No sugerir commit/push al cerrar** una tarea. No aporta valor; el usuario versiona cuando quiera.
+- **No agregar pasos de commit** en skills, checklists ni workflows del agente.
+
+Cuando el usuario pida commitear, seguir el protocolo de git del proyecto (mensaje claro, no force push, etc.).
