@@ -55,26 +55,53 @@ El directorio principal (`hermes/`) queda limpio y en su rama original.
 Una vez que los tests pasan y el trabajo está listo:
 
 ```bash
-# Volver al repo principal
+# Dentro del worktree — pushear la rama
+cd ../hermes-<nombre>
+git push -u origin $BRANCH
+```
+
+### 5. Abrir el PR
+
+Siempre abrir un PR para revisión. **Nunca hacer merge directo a main.**
+
+```bash
+gh pr create \
+  --title "<título descriptivo de la feature>" \
+  --body "$(cat <<'EOF'
+## Resumen
+- <qué hace este PR>
+
+## Cambios
+- <listado de cambios principales>
+
+## Test plan
+- [ ] Tests unitarios pasan (`bin/rails test`)
+- [ ] Revisión manual del flujo principal
+EOF
+)"
+```
+
+El PR queda abierto para revisión. El worktree se mantiene hasta que el PR sea mergeado.
+
+### 6. Después del merge
+
+Una vez aprobado y mergeado el PR:
+
+```bash
+# Volver al repo principal y actualizar
 cd ../hermes
-
-# Revisar el worktree
-git worktree list
-
-# Merge (o abrir PR — lo que corresponda al flujo del proyecto)
-git merge $BRANCH
+git pull
 
 # Limpiar el worktree
 git worktree remove ../hermes-<nombre>
 ```
 
-> Si el usuario tiene un flujo de PR, **no hacer merge directo**. Dejar el worktree hasta que el PR sea aprobado y mergeado.
-
 ---
 
 ## Reglas
 
-- **No borrar** el worktree hasta que el trabajo esté mergeado o el usuario lo indique.
+- **Siempre abrir PR** — nunca hacer merge directo a main.
+- **No borrar** el worktree hasta que el PR esté mergeado o el usuario lo indique.
 - **No usar** `git worktree remove --force` salvo pedido explícito.
 - Si el directorio destino ya existe, abortar y avisar al usuario.
 - Verificar siempre con `git worktree list` antes de crear uno nuevo con el mismo nombre.
@@ -86,5 +113,7 @@ git worktree remove ../hermes-<nombre>
 ```bash
 git worktree list                          # ver worktrees activos
 git worktree add <path> -b <branch>        # crear
-git worktree remove <path>                 # limpiar (cuando ya no se necesite)
+git push -u origin <branch>               # pushear rama
+gh pr create --title "..." --body "..."   # abrir PR
+git worktree remove <path>                 # limpiar (después del merge)
 ```
