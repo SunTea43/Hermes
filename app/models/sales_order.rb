@@ -11,4 +11,16 @@ class SalesOrder < ApplicationRecord
   accepts_nested_attributes_for :sales_order_items,
     allow_destroy: true,
     reject_if: :all_blank
+
+  def recalculate_total!
+    update_columns(total: sales_order_items.sum(:subtotal))
+  end
+
+  def amount_paid
+    payments.where(payment_status: "recorded").sum(:amount)
+  end
+
+  def amount_due
+    (total || 0) - amount_paid
+  end
 end

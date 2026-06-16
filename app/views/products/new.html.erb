@@ -1,11 +1,7 @@
-<% content_for :title, "New product" %>
+<% content_for :title, "Nuevo producto" %>
 
-<h1>New product</h1>
+<%= render PageHeaderComponent.new(title: "Nuevo producto") %>
 
-<%= render "form", product: @product %>
-
-<br>
-
-<div>
-  <%= link_to "Back to products", products_path %>
-</div>
+<%= render CardComponent.new do %>
+  <%= render "form", product: @product %>
+<% end %>

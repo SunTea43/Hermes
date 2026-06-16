@@ -1,17 +1,15 @@
-# Read about fixtures at https://api.rubyonrails.org/classes/ActiveRecord/FixtureSet.html
-
 one:
   sales_order: one
   product: one
-  quantity: 9.99
-  unit_price: 9.99
-  discount: 9.99
-  subtotal: 9.99
+  quantity: 10.0
+  unit_price: 2800.0
+  discount: 0.0
+  subtotal: 28000.0
 
 two:
   sales_order: two
   product: two
-  quantity: 9.99
-  unit_price: 9.99
-  discount: 9.99
-  subtotal: 9.99
+  quantity: 2.0
+  unit_price: 7500.0
+  discount: 0.0
+  subtotal: 15000.0

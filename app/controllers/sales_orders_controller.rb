@@ -30,8 +30,14 @@ class SalesOrdersController < ApplicationController
 
     respond_to do |format|
       if @sales_order.save
-        format.html { redirect_to @sales_order, notice: "Sales order was successfully created." }
-        format.json { render :show, status: :created, location: @sales_order }
+        result = SalesOrders::RecordInventoryExitService.new(@sales_order, user: current_user).call
+        if result.success?
+          format.html { redirect_to @sales_order, notice: "Orden de venta registrada exitosamente." }
+          format.json { render :show, status: :created, location: @sales_order }
+        else
+          format.html { redirect_to @sales_order, alert: "Orden creada, pero hubo problemas actualizando el inventario: #{result.errors.join(', ')}" }
+          format.json { render :show, status: :created, location: @sales_order }
+        end
       else
         format.html { render :new, status: :unprocessable_content }
         format.json { render json: @sales_order.errors, status: :unprocessable_content }

@@ -1,12 +1,7 @@
-<% content_for :title, "Editing product" %>
+<% content_for :title, "Editar #{@product.name}" %>
 
-<h1>Editing product</h1>
+<%= render PageHeaderComponent.new(title: "Editar: #{@product.name}") %>
 
-<%= render "form", product: @product %>
-
-<br>
-
-<div>
-  <%= link_to "Show this product", @product %> |
-  <%= link_to "Back to products", products_path %>
-</div>
+<%= render CardComponent.new do %>
+  <%= render "form", product: @product %>
+<% end %>

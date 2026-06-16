@@ -1,15 +1,13 @@
-# Read about fixtures at https://api.rubyonrails.org/classes/ActiveRecord/FixtureSet.html
-
 one:
   business: one
   product: one
-  current_quantity: 9.99
-  minimum_alert_quantity: 9.99
-  last_updated_at: 2026-06-14 21:49:52
+  current_quantity: 100.0
+  minimum_alert_quantity: 20.0
+  last_updated_at: <%= Time.current %>
 
 two:
   business: two
   product: two
-  current_quantity: 9.99
-  minimum_alert_quantity: 9.99
-  last_updated_at: 2026-06-14 21:49:52
+  current_quantity: 40.0
+  minimum_alert_quantity: 10.0
+  last_updated_at: <%= Time.current %>

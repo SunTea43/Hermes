@@ -7,7 +7,13 @@ Rails.application.routes.draw do
   resources :purchase_order_items
   resources :purchase_orders
   resources :product_prices
-  resources :products
+  resources :products do
+    collection do
+      get  :import_form
+      post :import
+      get  :download_template
+    end
+  end
   resources :role_assignments
   resources :businesses
   devise_for :users, skip: [ :registrations ]

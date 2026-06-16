@@ -1,25 +1,23 @@
-# Read about fixtures at https://api.rubyonrails.org/classes/ActiveRecord/FixtureSet.html
-
 one:
   business: one
-  reference_number: MyString
-  created_by_id: 
-  customer_name: MyString
-  customer_identifier: MyString
-  payment_condition: MyString
-  payment_status: MyString
-  payment_due_at: 2026-06-14 21:49:50
-  total: 9.99
-  notes: MyText
+  reference_number: OV-001
+  created_by: one
+  customer_name: Don Julio
+  customer_identifier: ""
+  payment_condition: cash
+  payment_status: paid
+  payment_due_at:
+  total: 28000.0
+  notes: Cliente frecuente
 
 two:
   business: two
-  reference_number: MyString
-  created_by_id: 
-  customer_name: MyString
-  customer_identifier: MyString
-  payment_condition: MyString
-  payment_status: MyString
-  payment_due_at: 2026-06-14 21:49:50
-  total: 9.99
-  notes: MyText
+  reference_number: OV-002
+  created_by: two
+  customer_name: Doña María
+  customer_identifier: ""
+  payment_condition: credit
+  payment_status: pending
+  payment_due_at: <%= 3.days.from_now %>
+  total: 15000.0
+  notes: Fiado

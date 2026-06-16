@@ -1,15 +1,13 @@
-# Read about fixtures at https://api.rubyonrails.org/classes/ActiveRecord/FixtureSet.html
-
 one:
   business: one
-  name: MyString
-  description: MyText
-  unit_measure: MyString
-  status: MyString
+  name: Arroz
+  description: Arroz blanco corriente
+  unit_measure: kg
+  status: active
 
 two:
   business: two
-  name: MyString
-  description: MyText
-  unit_measure: MyString
-  status: MyString
+  name: Aceite
+  description: Aceite vegetal
+  unit_measure: lt
+  status: active

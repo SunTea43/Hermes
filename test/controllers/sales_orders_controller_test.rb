@@ -5,44 +5,63 @@ class SalesOrdersControllerTest < ActionDispatch::IntegrationTest
     @sales_order = sales_orders(:one)
   end
 
-  test "should get index" do
+  test "GET index returns success" do
     get sales_orders_url
     assert_response :success
   end
 
-  test "should get new" do
-    get new_sales_order_url
-    assert_response :success
-  end
-
-  test "should create sales_order" do
-    assert_difference("SalesOrder.count") do
-      post sales_orders_url, params: { sales_order: { business_id: @sales_order.business_id, created_by_id: @sales_order.created_by_id, customer_identifier: @sales_order.customer_identifier, customer_name: @sales_order.customer_name, notes: @sales_order.notes, payment_condition: @sales_order.payment_condition, payment_due_at: @sales_order.payment_due_at, payment_status: @sales_order.payment_status, reference_number: "SO-#{SecureRandom.hex(4)}", total: @sales_order.total } }
-    end
-
-    assert_redirected_to sales_order_url(SalesOrder.last)
-  end
-
-  test "should show sales_order" do
+  test "GET show returns success" do
     get sales_order_url(@sales_order)
     assert_response :success
   end
 
-  test "should get edit" do
+  test "GET new returns success" do
+    get new_sales_order_url
+    assert_response :success
+  end
+
+  test "GET edit returns success" do
     get edit_sales_order_url(@sales_order)
     assert_response :success
   end
 
-  test "should update sales_order" do
-    patch sales_order_url(@sales_order), params: { sales_order: { business_id: @sales_order.business_id, created_by_id: @sales_order.created_by_id, customer_identifier: @sales_order.customer_identifier, customer_name: @sales_order.customer_name, notes: @sales_order.notes, payment_condition: @sales_order.payment_condition, payment_due_at: @sales_order.payment_due_at, payment_status: @sales_order.payment_status, reference_number: @sales_order.reference_number, total: @sales_order.total } }
-    assert_redirected_to sales_order_url(@sales_order)
+  test "POST create creates a sales order and redirects" do
+    assert_difference "SalesOrder.count" do
+      post sales_orders_url, params: {
+        sales_order: {
+          business_id: businesses(:one).id,
+          reference_number: "OV-TEST-#{SecureRandom.hex(4)}",
+          customer_name: "Cliente Test",
+          payment_condition: "cash",
+          payment_status: "pending",
+          total: 0
+        }
+      }
+    end
+    assert_redirected_to sales_order_url(SalesOrder.last)
   end
 
-  test "should destroy sales_order" do
-    assert_difference("SalesOrder.count", -1) do
+  test "POST create with invalid params renders new" do
+    assert_no_difference "SalesOrder.count" do
+      post sales_orders_url, params: {
+        sales_order: { business_id: nil, reference_number: "" }
+      }
+    end
+    assert_response :unprocessable_content
+  end
+
+  test "PATCH update changes customer name" do
+    patch sales_order_url(@sales_order), params: {
+      sales_order: { customer_name: "Julio Actualizado" }
+    }
+    assert_redirected_to sales_order_url(@sales_order)
+    assert_equal "Julio Actualizado", @sales_order.reload.customer_name
+  end
+
+  test "DELETE destroy removes order" do
+    assert_difference "SalesOrder.count", -1 do
       delete sales_order_url(@sales_order)
     end
-
     assert_redirected_to sales_orders_url
   end
 end

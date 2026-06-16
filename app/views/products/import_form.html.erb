@@ -1,0 +1,81 @@
+<% content_for :title, "Importar productos" %>
+
+<%= render PageHeaderComponent.new(title: "Importar productos desde Excel") %>
+
+<%= render CardComponent.new do %>
+  <p class="text-muted mb-3">
+    Sube un archivo <strong>.xlsx</strong> o <strong>.csv</strong> con los productos a importar.
+    Si un producto con el mismo nombre ya existe en el negocio, se actualizará con los nuevos valores.
+  </p>
+
+  <% if @import_errors&.any? %>
+    <div class="alert alert-warning">
+      <strong><%= @imported %> producto(s) importado(s) con errores:</strong>
+      <ul class="mb-0 mt-2">
+        <% @import_errors.each do |err| %>
+          <li><%= err %></li>
+        <% end %>
+      </ul>
+    </div>
+  <% end %>
+
+  <%= form_with url: import_products_path, method: :post, multipart: true do |f| %>
+    <div class="mb-3">
+      <%= label_tag :business_id, "Negocio", class: "form-label" %>
+      <%= select_tag :business_id,
+          options_from_collection_for_select(policy_scope(Business).order(:name), :id, :name),
+          class: "form-select",
+          prompt: "Selecciona un negocio" %>
+    </div>
+
+    <div class="mb-3">
+      <%= label_tag :file, "Archivo (.xlsx o .csv)", class: "form-label" %>
+      <%= file_field_tag :file, accept: ".xlsx,.xls,.csv", class: "form-control" %>
+    </div>
+
+    <div class="d-flex gap-2 align-items-center">
+      <%= submit_tag "Importar productos", class: "btn btn-success" %>
+      <%= link_to "Cancelar", products_path, class: "btn btn-outline-secondary" %>
+      <%= link_to "📥 Descargar plantilla CSV", download_template_products_path, class: "btn btn-outline-secondary ms-auto" %>
+    </div>
+  <% end %>
+<% end %>
+
+<%= render CardComponent.new(title: "Formato esperado") do %>
+  <p class="text-muted small">Las columnas deben estar en este orden (fila 1 = encabezados):</p>
+  <div class="table-responsive">
+    <table class="table table-sm table-bordered small">
+      <thead class="table-light">
+        <tr>
+          <th>nombre</th>
+          <th>descripcion</th>
+          <th>unidad_medida</th>
+          <th>precio_venta</th>
+          <th>precio_compra</th>
+          <th>stock_inicial</th>
+          <th>stock_minimo</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Arroz</td>
+          <td>Arroz blanco corriente</td>
+          <td>kg</td>
+          <td>2800</td>
+          <td>2200</td>
+          <td>100</td>
+          <td>20</td>
+        </tr>
+        <tr>
+          <td>Aceite</td>
+          <td>Aceite vegetal 1L</td>
+          <td>lt</td>
+          <td>7500</td>
+          <td>6000</td>
+          <td>40</td>
+          <td>10</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+<% end %>

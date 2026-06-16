@@ -1,16 +1,49 @@
-<p style="color: green"><%= notice %></p>
+<% content_for :title, "Productos" %>
 
-<% content_for :title, "Products" %>
+<%= render PageHeaderComponent.new(title: "Productos") do %>
+  <div class="d-flex gap-2">
+    <%= link_to "Importar Excel", import_form_products_path, class: "btn btn-outline-success btn-sm" %>
+    <%= link_to "+ Nuevo producto", new_product_path, class: "btn btn-primary btn-sm" %>
+  </div>
+<% end %>
 
-<h1>Products</h1>
-
-<div id="products">
-  <% @products.each do |product| %>
-    <%= render product %>
-    <p>
-      <%= link_to "Show this product", product %>
-    </p>
-  <% end %>
-</div>
-
-<%= link_to "New product", new_product_path %>
+<% if @products.any? %>
+  <div class="table-responsive">
+    <table class="table table-hover align-middle">
+      <thead class="table-light">
+        <tr>
+          <th>Nombre</th>
+          <th>Unidad</th>
+          <th>Estado</th>
+          <th>Negocio</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        <% @products.each do |product| %>
+          <tr>
+            <td><strong><%= product.name %></strong><br><small class="text-muted"><%= product.description.presence || "—" %></small></td>
+            <td><span class="badge bg-secondary"><%= product.unit_measure %></span></td>
+            <td>
+              <% if product.status == "active" %>
+                <span class="badge bg-success">Activo</span>
+              <% else %>
+                <span class="badge bg-secondary">Inactivo</span>
+              <% end %>
+            </td>
+            <td><%= product.business.name %></td>
+            <td class="text-end">
+              <%= link_to "Ver", product, class: "btn btn-sm btn-outline-primary" %>
+              <%= link_to "Editar", edit_product_path(product), class: "btn btn-sm btn-outline-secondary" %>
+            </td>
+          </tr>
+        <% end %>
+      </tbody>
+    </table>
+  </div>
+<% else %>
+  <div class="text-center text-muted py-5">
+    <p>No hay productos registrados.</p>
+    <%= link_to "+ Agregar primer producto", new_product_path, class: "btn btn-primary" %>
+  </div>
+<% end %>

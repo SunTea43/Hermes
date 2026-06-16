@@ -1,19 +1,17 @@
-# Read about fixtures at https://api.rubyonrails.org/classes/ActiveRecord/FixtureSet.html
-
 one:
   business: one
-  reference_number: MyString
-  created_by_id: 
-  supplier_name: MyString
-  status: MyString
-  received_at: 2026-06-14 21:49:48
-  notes: MyText
+  reference_number: OC-001
+  created_by: one
+  supplier_name: Distribuidora Juanito
+  status: pending
+  received_at:
+  notes: Pedido semanal
 
 two:
   business: two
-  reference_number: MyString
-  created_by_id: 
-  supplier_name: MyString
-  status: MyString
-  received_at: 2026-06-14 21:49:48
-  notes: MyText
+  reference_number: OC-002
+  created_by: two
+  supplier_name: Proveedor Sur
+  status: received
+  received_at: <%= 2.days.ago %>
+  notes: ""

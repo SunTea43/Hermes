@@ -8,4 +8,8 @@ class PurchaseOrder < ApplicationRecord
   accepts_nested_attributes_for :purchase_order_items,
     allow_destroy: true,
     reject_if: :all_blank
+
+  def recalculate_total!
+    update_columns(total: purchase_order_items.sum(:subtotal))
+  end
 end

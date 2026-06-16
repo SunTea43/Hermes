@@ -6,6 +6,48 @@ class ProductsController < ApplicationController
     @products = policy_scope(Product)
   end
 
+  # GET /products/import
+  def import_form
+    authorize Product.new, :create?
+  end
+
+  # POST /products/import
+  def import
+    authorize Product.new, :create?
+
+    unless params[:file].present?
+      redirect_to import_form_products_path, alert: "Debes seleccionar un archivo."
+      return
+    end
+
+    business = Business.find(params[:business_id])
+    result   = Products::ImportService.new(params[:file], business: business, user: current_user).call
+
+    if result.success?
+      redirect_to products_path, notice: "#{result.imported} producto(s) importado(s) exitosamente."
+    else
+      @import_errors = result.errors
+      @imported      = result.imported
+      render :import_form, status: :unprocessable_content
+    end
+  end
+
+  # GET /products/template
+  def download_template
+    authorize Product.new, :create?
+
+    headers["Content-Disposition"] = 'attachment; filename="plantilla_productos.csv"'
+    headers["Content-Type"] = "text/csv; charset=utf-8"
+
+    csv = CSV.generate(headers: true) do |csv|
+      csv << [ "nombre", "descripcion", "unidad_medida", "precio_venta", "precio_compra", "stock_inicial", "stock_minimo" ]
+      csv << [ "Arroz", "Arroz blanco corriente", "kg", 2800, 2200, 100, 20 ]
+      csv << [ "Aceite", "Aceite vegetal 1L", "lt", 7500, 6000, 40, 10 ]
+    end
+
+    render plain: csv
+  end
+
   # GET /products/1 or /products/1.json
   def show
     authorize @product

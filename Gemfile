@@ -71,3 +71,5 @@ group :test do
   gem "selenium-webdriver"
   gem "shoulda-context"
 end
+
+gem "roo", "~> 3.0"

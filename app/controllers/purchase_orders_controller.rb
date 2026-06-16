@@ -30,7 +30,8 @@ class PurchaseOrdersController < ApplicationController
 
     respond_to do |format|
       if @purchase_order.save
-        format.html { redirect_to @purchase_order, notice: "Purchase order was successfully created." }
+        maybe_record_inventory_entry(@purchase_order)
+        format.html { redirect_to @purchase_order, notice: "Orden de compra registrada exitosamente." }
         format.json { render :show, status: :created, location: @purchase_order }
       else
         format.html { render :new, status: :unprocessable_content }
@@ -42,10 +43,12 @@ class PurchaseOrdersController < ApplicationController
   # PATCH/PUT /purchase_orders/1 or /purchase_orders/1.json
   def update
     authorize @purchase_order
+    was_received = @purchase_order.status == "received"
 
     respond_to do |format|
       if @purchase_order.update(purchase_order_params)
-        format.html { redirect_to @purchase_order, notice: "Purchase order was successfully updated.", status: :see_other }
+        maybe_record_inventory_entry(@purchase_order) unless was_received
+        format.html { redirect_to @purchase_order, notice: "Orden de compra actualizada.", status: :see_other }
         format.json { render :show, status: :ok, location: @purchase_order }
       else
         format.html { render :edit, status: :unprocessable_content }
@@ -75,5 +78,14 @@ class PurchaseOrdersController < ApplicationController
     def purchase_order_params
       params.expect(purchase_order: [ :business_id, :reference_number, :created_by_id, :supplier_name, :status, :received_at, :notes,
         purchase_order_items_attributes: [ :id, :product_id, :quantity, :unit_price, :notes, :_destroy ] ])
+    end
+
+    def maybe_record_inventory_entry(order)
+      return unless order.status == "received"
+
+      result = PurchaseOrders::RecordInventoryEntryService.new(order, user: current_user).call
+      unless result.success?
+        flash[:alert] = "Orden guardada, pero hubo problemas actualizando el inventario: #{result.errors.join(', ')}"
+      end
     end
 end
