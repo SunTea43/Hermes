@@ -1,6 +1,6 @@
 class UsersController < ApplicationController
   before_action :set_user, only: %i[ show edit update ]
-  before_action :set_manageable_businesses, only: %i[ new create ]
+  before_action :set_manageable_businesses, only: %i[ new edit create update ]
 
   def index
     @users = policy_scope(User).includes(:owned_businesses, role_assignments: :business).order(:name, :email)
@@ -34,7 +34,7 @@ class UsersController < ApplicationController
   def update
     authorize @user
 
-    if @user.update(user_attributes)
+    if update_user_and_roles
       redirect_to @user, notice: "Usuario actualizado correctamente.", status: :see_other
     else
       render :edit, status: :unprocessable_content
@@ -73,6 +73,56 @@ class UsersController < ApplicationController
 
   def initial_role_params
     user_params.slice(:initial_business_id, :initial_role)
+  end
+
+  def update_user_and_roles
+    updated = false
+
+    ActiveRecord::Base.transaction do
+      unless @user.update(user_attributes)
+        raise ActiveRecord::Rollback
+      end
+
+      if should_sync_permitted_roles?
+        sync_permitted_roles
+      end
+
+      updated = true
+    end
+
+    updated
+  end
+
+  def should_sync_permitted_roles?
+    @user != current_user && params.dig(:user, :permitted_roles).present?
+  end
+
+  def sync_permitted_roles
+    @manageable_businesses.each do |business|
+      selected_role = permitted_role_for(business)
+      unless selected_role.blank? || RoleAssignment::ROLES.include?(selected_role)
+        @user.errors.add(:base, "Rol inválido para #{business.name}.")
+        raise ActiveRecord::Rollback
+      end
+
+      current_assignments = @user.role_assignments.where(business: business, status: "active")
+
+      current_assignments.find_each do |assignment|
+        authorize assignment, :update?
+        assignment.update!(status: "inactive", ended_at: Time.current)
+      end
+
+      next if selected_role.blank?
+
+      assignment = @user.role_assignments.find_or_initialize_by(business: business, role: selected_role)
+      assignment.assign_attributes(status: "active", ended_at: nil, assigned_at: assignment.assigned_at || Time.current)
+      authorize assignment, :update?
+      assignment.save!
+    end
+  end
+
+  def permitted_role_for(business)
+    params.dig(:user, :permitted_roles, business.id.to_s)
   end
 
   def create_user_with_initial_role

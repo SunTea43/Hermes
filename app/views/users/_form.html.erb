@@ -57,6 +57,25 @@
     <% end %>
   </div>
 
+  <% if user.persisted? && user != current_user %>
+    <hr class="my-4">
+
+    <h2 class="h5">Negocios permitidos</h2>
+    <p class="text-muted">Selecciona el rol que esta persona tendrá en cada negocio que administras.</p>
+
+    <div class="row g-3">
+      <% @manageable_businesses.each do |business| %>
+        <div class="col-md-6">
+          <%= label_tag "user_permitted_roles_#{business.id}", business.name, class: "form-label" %>
+          <%= select_tag "user[permitted_roles][#{business.id}]",
+            options_for_select([ [ "Sin acceso", "" ] ] + RoleAssignment::ROLES.map { |role| [ role.titleize, role ] }, user.role_for(business)),
+            id: "user_permitted_roles_#{business.id}",
+            class: "form-select" %>
+        </div>
+      <% end %>
+    </div>
+  <% end %>
+
   <div class="mt-4 d-flex gap-2">
     <%= form.submit user.persisted? ? "Guardar cambios" : "Crear usuario", class: "btn btn-primary" %>
     <%= link_to "Cancelar", user.persisted? ? user_path(user) : users_path, class: "btn btn-outline-secondary" %>

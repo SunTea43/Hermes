@@ -45,4 +45,37 @@ class RoleAssignmentsControllerTest < ActionDispatch::IntegrationTest
 
     assert_redirected_to user_url(@role_assignment.user)
   end
+
+  test "manager should not update role assignments from other businesses" do
+    sign_in users(:two)
+
+    patch role_assignment_url(role_assignments(:one)), params: {
+      role_assignment: {
+        user_id: role_assignments(:one).user_id,
+        business_id: role_assignments(:one).business_id,
+        role: "viewer",
+        status: "active"
+      }
+    }
+
+    assert_redirected_to root_url
+    assert_equal "owner", role_assignments(:one).reload.role
+  end
+
+  test "manager should not create role assignments for other businesses" do
+    sign_in users(:two)
+
+    assert_no_difference("RoleAssignment.count") do
+      post role_assignments_url, params: {
+        role_assignment: {
+          user_id: users(:two).id,
+          business_id: businesses(:one).id,
+          role: "viewer",
+          status: "active"
+        }
+      }
+    end
+
+    assert_redirected_to root_url
+  end
 end

@@ -81,4 +81,33 @@ class UsersControllerTest < ActionDispatch::IntegrationTest
     assert_redirected_to user_url(@user)
     assert_equal "Updated User", @user.reload.name
   end
+
+  test "should update permitted businesses for another user" do
+    RoleAssignment.create!(
+      user: @user,
+      business: businesses(:two),
+      role: "manager",
+      status: "active",
+      assigned_at: Time.current
+    )
+
+    patch user_url(users(:two)), params: {
+      user: {
+        name: users(:two).name,
+        email: users(:two).email,
+        whatsapp_phone: users(:two).whatsapp_phone,
+        status: users(:two).status,
+        password: "",
+        password_confirmation: "",
+        permitted_roles: {
+          businesses(:one).id.to_s => "viewer",
+          businesses(:two).id.to_s => "operator"
+        }
+      }
+    }
+
+    assert_redirected_to user_url(users(:two))
+    assert_equal "viewer", users(:two).role_for(businesses(:one))
+    assert_equal "operator", users(:two).role_for(businesses(:two))
+  end
 end
