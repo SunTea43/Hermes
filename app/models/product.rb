@@ -1,6 +1,8 @@
 class Product < ApplicationRecord
   belongs_to :business
 
+  scope :active, -> { where(status: "active") }
+
   validates :name, presence: true
   validates :unit_measure, presence: true
 

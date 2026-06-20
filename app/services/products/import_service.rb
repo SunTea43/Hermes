@@ -1,7 +1,7 @@
 require "roo"
 
 module Products
-  class ImportService
+  class ImportService < ApplicationService
     EXPECTED_HEADERS = %w[nombre descripcion unidad_medida precio_venta precio_compra stock_inicial stock_minimo].freeze
 
     Result = Struct.new(:imported, :errors, keyword_init: true) do

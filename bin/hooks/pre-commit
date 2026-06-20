@@ -1,21 +1,41 @@
 #!/usr/bin/env bash
 set -e
 
-# Obtener solo los archivos .rb staged (no eliminados)
-STAGED=$(git diff --cached --name-only --diff-filter=ACM | grep '\.rb$' || true)
+# Obtener archivos staged (no eliminados)
+STAGED=$(git diff --cached --name-only --diff-filter=ACM)
 
 if [ -z "$STAGED" ]; then
   exit 0
 fi
 
-echo "🔍 Rubocop en archivos staged..."
-bundle exec rubocop --format progress $STAGED
+STAGED_RB=$(echo "$STAGED" | grep '\.rb$' || true)
+if [ -n "$STAGED_RB" ]; then
+  echo "Rubocop en archivos staged..."
+  if ! bundle exec rubocop --format progress $STAGED_RB; then
+    echo ""
+    echo "Rubocop encontró ofensas. Corregí los errores antes de commitear."
+    echo "   Tip: bundle exec rubocop -a $STAGED_RB"
+    exit 1
+  fi
+  echo "Rubocop OK"
+fi
 
-if [ $? -ne 0 ]; then
+echo "Bundler audit..."
+if ! bin/bundler-audit; then
   echo ""
-  echo "❌ Rubocop encontró ofensas. Corregí los errores antes de commitear."
-  echo "   Tip: bundle exec rubocop -a $STAGED"
+  echo "Bundler Audit encontró vulnerabilidades en las gemas. Corregí los hallazgos antes de commitear."
+  echo "   Tip: bin/bundler-audit"
   exit 1
 fi
 
-echo "✅ Rubocop OK"
+echo "Bundler Audit OK"
+
+echo "Brakeman security scan..."
+if ! bin/brakeman --quiet --no-pager --exit-on-warn --exit-on-error; then
+  echo ""
+  echo "Brakeman encontró warnings de seguridad. Corregí los hallazgos antes de commitear."
+  echo "   Tip: bin/brakeman --no-pager"
+  exit 1
+fi
+
+echo "Brakeman OK"

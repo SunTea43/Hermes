@@ -1,5 +1,5 @@
 module SalesOrders
-  class RecordInventoryExitService
+  class RecordInventoryExitService < ApplicationService
     Result = Struct.new(:success?, :errors, keyword_init: true)
 
     def initialize(sales_order, user:)

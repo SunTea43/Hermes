@@ -1,5 +1,5 @@
 module PurchaseOrders
-  class RecordInventoryEntryService
+  class RecordInventoryEntryService < ApplicationService
     Result = Struct.new(:success?, :errors, keyword_init: true)
 
     def initialize(purchase_order, user:)

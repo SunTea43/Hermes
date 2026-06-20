@@ -55,7 +55,7 @@ productos = [
   { name: "Panela",  description: "Panela redonda",   unit_measure: "und", sale: 3_500,  purchase: 2_800, stock: 30,  min: 10 },
   { name: "Café",    description: "Café molido 500g", unit_measure: "und", sale: 8_500,  purchase: 6_800, stock: 25,  min: 8  },
   { name: "Jabón",   description: "Jabón de baño",    unit_measure: "und", sale: 2_200,  purchase: 1_700, stock: 60,  min: 20 },
-  { name: "Leche",   description: "Leche entera UHT", unit_measure: "lt",  sale: 3_800,  purchase: 3_000, stock: 45,  min: 12 },
+  { name: "Leche",   description: "Leche entera UHT", unit_measure: "lt",  sale: 3_800,  purchase: 3_000, stock: 45,  min: 12 }
 ]
 
 productos.each do |attrs|
