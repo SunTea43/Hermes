@@ -20,6 +20,16 @@ if [ -n "$STAGED_RB" ]; then
   echo "✅ Rubocop OK"
 fi
 
+echo "🔐 Bundler audit..."
+if ! bin/bundler-audit; then
+  echo ""
+  echo "❌ Bundler Audit encontró vulnerabilidades en las gemas. Corregí los hallazgos antes de commitear."
+  echo "   Tip: bin/bundler-audit"
+  exit 1
+fi
+
+echo "✅ Bundler Audit OK"
+
 echo "🔒 Brakeman security scan..."
 if ! bin/brakeman --quiet --no-pager --exit-on-warn --exit-on-error; then
   echo ""
