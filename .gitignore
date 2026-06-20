@@ -35,7 +35,6 @@ npm-debug.log*
 !.env.example
 
 # Ignore local application configuration
-/config/database.yml
 /config/deploy.yml
 /.kamal/secrets
 
