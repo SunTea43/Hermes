@@ -16,7 +16,7 @@ class LowStockAlertJob < ApplicationJob
         "- #{i.product.name}: #{i.current_quantity}#{i.product.unit_measure} (mín. #{i.minimum_alert_quantity})"
       }.join("\n")
 
-      WhatsappBot::Sender.send(owner.whatsapp_phone, msg)
+      WhatsappBot::Sender.deliver(owner.whatsapp_phone, msg)
     end
   end
 end

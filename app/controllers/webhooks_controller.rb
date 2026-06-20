@@ -9,7 +9,7 @@ class WebhooksController < ApplicationController
     user    = User.find_by(whatsapp_phone: from)
 
     if user.nil?
-      WhatsappBot::Sender.send(from, "No encontré una cuenta asociada a este número. Registrate en #{ENV.fetch('APP_HOST', 'la app')}.")
+      WhatsappBot::Sender.deliver(from, "No encontré una cuenta asociada a este número. Registrate en #{ENV.fetch('APP_HOST', 'la app')}.")
     else
       WhatsappBot::DispatchService.call(user, body)
     end

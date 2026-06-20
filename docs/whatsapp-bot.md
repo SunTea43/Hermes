@@ -164,7 +164,7 @@ ngrok http 3000
 # app/services/whatsapp_bot/sender.rb
 module WhatsappBot
   class Sender
-    def self.send(to_phone, message)
+    def self.deliver(to_phone, message)
       client = Twilio::REST::Client.new(
         ENV["TWILIO_ACCOUNT_SID"],
         ENV["TWILIO_AUTH_TOKEN"]
@@ -202,7 +202,7 @@ class LowStockAlertJob < ApplicationJob
         "- #{i.product.name}: #{i.current_quantity}#{i.product.unit_measure} (mín. #{i.minimum_alert_quantity})"
       }.join("\n")
 
-      WhatsappBot::Sender.send(business.owner.whatsapp_phone, msg)
+      WhatsappBot::Sender.deliver(business.owner.whatsapp_phone, msg)
     end
   end
 end
@@ -234,7 +234,7 @@ class PortfolioReminderJob < ApplicationJob
         "- #{o.customer_name}: $#{o.total} (#{label})"
       }.join("\n")
 
-      WhatsappBot::Sender.send(business.owner.whatsapp_phone, msg)
+      WhatsappBot::Sender.deliver(business.owner.whatsapp_phone, msg)
     end
   end
 end

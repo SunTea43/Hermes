@@ -19,7 +19,7 @@ class PortfolioReminderJob < ApplicationJob
         "- #{o.customer_name}: $#{o.total} (#{label})"
       }.join("\n")
 
-      WhatsappBot::Sender.send(owner.whatsapp_phone, msg)
+      WhatsappBot::Sender.deliver(owner.whatsapp_phone, msg)
     end
   end
 end

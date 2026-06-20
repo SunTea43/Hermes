@@ -15,7 +15,7 @@ module WhatsappBot
     private
 
     def reply(text)
-      Sender.send(@user.whatsapp_phone, text)
+      Sender.deliver(@user.whatsapp_phone, text)
     end
 
     def affirmative?

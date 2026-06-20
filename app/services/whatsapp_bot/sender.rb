@@ -1,6 +1,6 @@
 module WhatsappBot
   class Sender
-    def self.send(to_phone, message)
+    def self.deliver(to_phone, message)
       client = Twilio::REST::Client.new(
         ENV.fetch("TWILIO_ACCOUNT_SID"),
         ENV.fetch("TWILIO_AUTH_TOKEN")
