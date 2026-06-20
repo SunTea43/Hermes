@@ -10,8 +10,8 @@ class Products::ImportServiceTest < ActiveSupport::TestCase
 
   test "imports products from valid CSV" do
     csv_file = build_csv([
-      ["nombre", "descripcion", "unidad_medida", "precio_venta", "precio_compra", "stock_inicial", "stock_minimo"],
-      ["Panela", "Panela redonda", "und", "3500", "2800", "30", "10"]
+      [ "nombre", "descripcion", "unidad_medida", "precio_venta", "precio_compra", "stock_inicial", "stock_minimo" ],
+      [ "Panela", "Panela redonda", "und", "3500", "2800", "30", "10" ]
     ])
 
     assert_difference "Product.count" do
@@ -25,8 +25,8 @@ class Products::ImportServiceTest < ActiveSupport::TestCase
 
   test "creates sale and purchase prices" do
     csv_file = build_csv([
-      ["nombre", "descripcion", "unidad_medida", "precio_venta", "precio_compra", "stock_inicial", "stock_minimo"],
-      ["Frijol", "Frijol rojo", "kg", "4000", "3200", "20", "5"]
+      [ "nombre", "descripcion", "unidad_medida", "precio_venta", "precio_compra", "stock_inicial", "stock_minimo" ],
+      [ "Frijol", "Frijol rojo", "kg", "4000", "3200", "20", "5" ]
     ])
 
     Products::ImportService.new(csv_file, business: @business, user: @user).call
@@ -40,8 +40,8 @@ class Products::ImportServiceTest < ActiveSupport::TestCase
 
   test "creates inventory with stock" do
     csv_file = build_csv([
-      ["nombre", "descripcion", "unidad_medida", "precio_venta", "precio_compra", "stock_inicial", "stock_minimo"],
-      ["Lentejas", "Lentejas verdes", "kg", "3000", "2400", "15", "5"]
+      [ "nombre", "descripcion", "unidad_medida", "precio_venta", "precio_compra", "stock_inicial", "stock_minimo" ],
+      [ "Lentejas", "Lentejas verdes", "kg", "3000", "2400", "15", "5" ]
     ])
 
     Products::ImportService.new(csv_file, business: @business, user: @user).call
@@ -55,8 +55,8 @@ class Products::ImportServiceTest < ActiveSupport::TestCase
 
   test "returns error for missing headers" do
     csv_file = build_csv([
-      ["nombre", "descripcion"],
-      ["Test", "desc"]
+      [ "nombre", "descripcion" ],
+      [ "Test", "desc" ]
     ])
 
     result = Products::ImportService.new(csv_file, business: @business, user: @user).call
@@ -68,8 +68,8 @@ class Products::ImportServiceTest < ActiveSupport::TestCase
 
   test "skips rows with blank name and reports error" do
     csv_file = build_csv([
-      ["nombre", "descripcion", "unidad_medida", "precio_venta", "precio_compra", "stock_inicial", "stock_minimo"],
-      ["", "sin nombre", "kg", "1000", "800", "10", "2"]
+      [ "nombre", "descripcion", "unidad_medida", "precio_venta", "precio_compra", "stock_inicial", "stock_minimo" ],
+      [ "", "sin nombre", "kg", "1000", "800", "10", "2" ]
     ])
 
     result = Products::ImportService.new(csv_file, business: @business, user: @user).call
@@ -82,7 +82,7 @@ class Products::ImportServiceTest < ActiveSupport::TestCase
   private
 
   def build_csv(rows)
-    file = Tempfile.new(["import_test", ".csv"])
+    file = Tempfile.new([ "import_test", ".csv" ])
     CSV.open(file.path, "w") { |csv| rows.each { |row| csv << row } }
     file
   end

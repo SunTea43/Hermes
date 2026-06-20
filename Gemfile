@@ -75,4 +75,4 @@ end
 gem "roo", "~> 3.0"
 gem "twilio-ruby", "~> 7.0"
 
-gem "dotenv-rails", "~> 3.2", groups: [:development, :test]
+gem "dotenv-rails", "~> 3.2", groups: [ :development, :test ]
