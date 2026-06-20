@@ -10,32 +10,32 @@ fi
 
 STAGED_RB=$(echo "$STAGED" | grep '\.rb$' || true)
 if [ -n "$STAGED_RB" ]; then
-  echo "🔍 Rubocop en archivos staged..."
+  echo "Rubocop en archivos staged..."
   if ! bundle exec rubocop --format progress $STAGED_RB; then
     echo ""
-    echo "❌ Rubocop encontró ofensas. Corregí los errores antes de commitear."
+    echo "Rubocop encontró ofensas. Corregí los errores antes de commitear."
     echo "   Tip: bundle exec rubocop -a $STAGED_RB"
     exit 1
   fi
-  echo "✅ Rubocop OK"
+  echo "Rubocop OK"
 fi
 
-echo "🔐 Bundler audit..."
+echo "Bundler audit..."
 if ! bin/bundler-audit; then
   echo ""
-  echo "❌ Bundler Audit encontró vulnerabilidades en las gemas. Corregí los hallazgos antes de commitear."
+  echo "Bundler Audit encontró vulnerabilidades en las gemas. Corregí los hallazgos antes de commitear."
   echo "   Tip: bin/bundler-audit"
   exit 1
 fi
 
-echo "✅ Bundler Audit OK"
+echo "Bundler Audit OK"
 
-echo "🔒 Brakeman security scan..."
+echo "Brakeman security scan..."
 if ! bin/brakeman --quiet --no-pager --exit-on-warn --exit-on-error; then
   echo ""
-  echo "❌ Brakeman encontró warnings de seguridad. Corregí los hallazgos antes de commitear."
+  echo "Brakeman encontró warnings de seguridad. Corregí los hallazgos antes de commitear."
   echo "   Tip: bin/brakeman --no-pager"
   exit 1
 fi
 
-echo "✅ Brakeman OK"
+echo "Brakeman OK"
