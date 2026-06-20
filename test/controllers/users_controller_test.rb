@@ -5,6 +5,10 @@ class UsersControllerTest < ActionDispatch::IntegrationTest
     @user = users(:one)
   end
 
+  test "devise sign in route is not captured by users show" do
+    assert_recognizes({ controller: "devise/sessions", action: "new" }, "/users/sign_in")
+  end
+
   test "should get index" do
     get users_url
 
