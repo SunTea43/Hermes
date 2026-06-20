@@ -1,16 +1,51 @@
-<p style="color: green"><%= notice %></p>
+<% content_for :title, "Roles" %>
 
-<% content_for :title, "Role assignments" %>
+<%= render PageHeaderComponent.new(title: "Roles", subtitle: "Asignaciones activas e históricas por negocio") do %>
+  <%= link_to "+ Asignar rol", new_role_assignment_path, class: "btn btn-primary btn-sm" %>
+<% end %>
 
-<h1>Role assignments</h1>
-
-<div id="role_assignments">
-  <% @role_assignments.each do |role_assignment| %>
-    <%= render role_assignment %>
-    <p>
-      <%= link_to "Show this role assignment", role_assignment %>
-    </p>
-  <% end %>
-</div>
-
-<%= link_to "New role assignment", new_role_assignment_path %>
+<% if @role_assignments.any? %>
+  <div class="table-responsive">
+    <table class="table table-hover align-middle">
+      <thead class="table-light">
+        <tr>
+          <th>Usuario</th>
+          <th>Negocio</th>
+          <th>Rol</th>
+          <th>Módulos</th>
+          <th>Estado</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        <% @role_assignments.each do |assignment| %>
+          <tr>
+            <td>
+              <strong><%= assignment.user.display_name %></strong><br>
+              <small class="text-muted"><%= assignment.user.email %></small>
+            </td>
+            <td><%= assignment.business.name %></td>
+            <td><span class="badge text-bg-light border"><%= assignment.role %></span></td>
+            <td><%= assignment.assigned_modules.presence || "—" %></td>
+            <td>
+              <% if assignment.status == "active" %>
+                <span class="badge bg-success">Activo</span>
+              <% else %>
+                <span class="badge bg-secondary">Inactivo</span>
+              <% end %>
+            </td>
+            <td class="text-end">
+              <%= link_to "Ver usuario", assignment.user, class: "btn btn-sm btn-outline-primary" %>
+              <%= link_to "Editar", edit_role_assignment_path(assignment), class: "btn btn-sm btn-outline-secondary" %>
+            </td>
+          </tr>
+        <% end %>
+      </tbody>
+    </table>
+  </div>
+<% else %>
+  <div class="text-center text-muted py-5">
+    <p>No hay roles registrados para los negocios que administras.</p>
+    <%= link_to "+ Asignar primer rol", new_role_assignment_path, class: "btn btn-primary" %>
+  </div>
+<% end %>

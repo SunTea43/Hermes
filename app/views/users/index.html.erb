@@ -1,0 +1,60 @@
+<% content_for :title, "Usuarios" %>
+
+<%= render PageHeaderComponent.new(title: "Usuarios", subtitle: "Gestiona perfiles y roles por negocio") do %>
+  <%= link_to "+ Nuevo usuario", new_user_path, class: "btn btn-primary btn-sm" %>
+<% end %>
+
+<% if @users.any? %>
+  <div class="table-responsive">
+    <table class="table table-hover align-middle">
+      <thead class="table-light">
+        <tr>
+          <th>Usuario</th>
+          <th>WhatsApp</th>
+          <th>Estado</th>
+          <th>Roles activos</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        <% @users.each do |user| %>
+          <tr>
+            <td>
+              <strong><%= user.display_name %></strong><br>
+              <small class="text-muted"><%= user.email %></small>
+            </td>
+            <td><%= user.whatsapp_phone.presence || "—" %></td>
+            <td>
+              <% if user.status == "active" %>
+                <span class="badge bg-success">Activo</span>
+              <% else %>
+                <span class="badge bg-secondary">Inactivo</span>
+              <% end %>
+            </td>
+            <td>
+              <% active_roles = user.role_assignments.select { |assignment| assignment.status == "active" } %>
+              <% if active_roles.any? %>
+                <div class="d-flex flex-wrap gap-1">
+                  <% active_roles.each do |assignment| %>
+                    <span class="badge text-bg-light border"><%= assignment.business.name %>: <%= assignment.role %></span>
+                  <% end %>
+                </div>
+              <% else %>
+                <span class="text-muted">Sin roles activos</span>
+              <% end %>
+            </td>
+            <td class="text-end">
+              <%= link_to "Ver", user, class: "btn btn-sm btn-outline-primary" %>
+              <%= link_to "Editar", edit_user_path(user), class: "btn btn-sm btn-outline-secondary" %>
+            </td>
+          </tr>
+        <% end %>
+      </tbody>
+    </table>
+  </div>
+<% else %>
+  <div class="text-center text-muted py-5">
+    <p>No hay usuarios visibles para los negocios que administras.</p>
+    <%= link_to "+ Crear primer usuario", new_user_path, class: "btn btn-primary" %>
+  </div>
+<% end %>

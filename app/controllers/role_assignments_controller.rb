@@ -1,35 +1,36 @@
 class RoleAssignmentsController < ApplicationController
   before_action :set_role_assignment, only: %i[ show edit update destroy ]
+  before_action :set_form_options, only: %i[ new edit create update ]
 
-  # GET /role_assignments or /role_assignments.json
   def index
-    @role_assignments = policy_scope(RoleAssignment)
+    @role_assignments = policy_scope(RoleAssignment).includes(:user, :business).order(status: :asc, role: :asc)
   end
 
-  # GET /role_assignments/1 or /role_assignments/1.json
   def show
     authorize @role_assignment
   end
 
-  # GET /role_assignments/new
   def new
-    @role_assignment = RoleAssignment.new
+    @role_assignment = RoleAssignment.new(
+      user_id: params[:user_id],
+      business: @manageable_businesses.first,
+      status: "active",
+      assigned_at: Time.current
+    )
     authorize @role_assignment
   end
 
-  # GET /role_assignments/1/edit
   def edit
     authorize @role_assignment
   end
 
-  # POST /role_assignments or /role_assignments.json
   def create
     @role_assignment = RoleAssignment.new(role_assignment_params)
     authorize @role_assignment
 
     respond_to do |format|
       if @role_assignment.save
-        format.html { redirect_to @role_assignment, notice: "Role assignment was successfully created." }
+        format.html { redirect_to role_assignment_redirect_path, notice: "Rol asignado correctamente." }
         format.json { render :show, status: :created, location: @role_assignment }
       else
         format.html { render :new, status: :unprocessable_content }
@@ -38,13 +39,14 @@ class RoleAssignmentsController < ApplicationController
     end
   end
 
-  # PATCH/PUT /role_assignments/1 or /role_assignments/1.json
   def update
+    authorize @role_assignment
+    @role_assignment.assign_attributes(role_assignment_params)
     authorize @role_assignment
 
     respond_to do |format|
-      if @role_assignment.update(role_assignment_params)
-        format.html { redirect_to @role_assignment, notice: "Role assignment was successfully updated.", status: :see_other }
+      if @role_assignment.save
+        format.html { redirect_to role_assignment_redirect_path, notice: "Rol actualizado correctamente.", status: :see_other }
         format.json { render :show, status: :ok, location: @role_assignment }
       else
         format.html { render :edit, status: :unprocessable_content }
@@ -53,25 +55,33 @@ class RoleAssignmentsController < ApplicationController
     end
   end
 
-  # DELETE /role_assignments/1 or /role_assignments/1.json
   def destroy
     authorize @role_assignment
+    user = @role_assignment.user
     @role_assignment.destroy!
 
     respond_to do |format|
-      format.html { redirect_to role_assignments_path, notice: "Role assignment was successfully destroyed.", status: :see_other }
+      format.html { redirect_to user_path(user), notice: "Rol eliminado correctamente.", status: :see_other }
       format.json { head :no_content }
     end
   end
 
   private
-    # Use callbacks to share common setup or constraints between actions.
-    def set_role_assignment
-      @role_assignment = RoleAssignment.find(params.expect(:id))
-    end
 
-    # Only allow a list of trusted parameters through.
-    def role_assignment_params
-      params.expect(role_assignment: [ :user_id, :business_id, :role, :assigned_modules, :restrictions, :assigned_at, :ended_at, :status ])
-    end
+  def set_role_assignment
+    @role_assignment = RoleAssignment.find(params.expect(:id))
+  end
+
+  def set_form_options
+    @manageable_businesses = current_user.manageable_businesses.order(:name)
+    @users = policy_scope(User).order(:name, :email)
+  end
+
+  def role_assignment_params
+    params.expect(role_assignment: [ :user_id, :business_id, :role, :assigned_modules, :restrictions, :assigned_at, :ended_at, :status ])
+  end
+
+  def role_assignment_redirect_path
+    user_path(@role_assignment.user)
+  end
 end

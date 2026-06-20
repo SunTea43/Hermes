@@ -1,42 +1,25 @@
-<div id="<%= dom_id role_assignment %>">
-  <div>
-    <strong>User:</strong>
-    <%= role_assignment.user_id %>
-  </div>
+<dl id="<%= dom_id role_assignment %>" class="row mb-0">
+  <dt class="col-sm-4">Usuario</dt>
+  <dd class="col-sm-8"><%= link_to role_assignment.user.display_name, role_assignment.user %></dd>
 
-  <div>
-    <strong>Business:</strong>
-    <%= role_assignment.business_id %>
-  </div>
+  <dt class="col-sm-4">Negocio</dt>
+  <dd class="col-sm-8"><%= role_assignment.business.name %></dd>
 
-  <div>
-    <strong>Role:</strong>
-    <%= role_assignment.role %>
-  </div>
+  <dt class="col-sm-4">Rol</dt>
+  <dd class="col-sm-8"><span class="badge text-bg-light border"><%= role_assignment.role %></span></dd>
 
-  <div>
-    <strong>Assigned modules:</strong>
-    <%= role_assignment.assigned_modules %>
-  </div>
+  <dt class="col-sm-4">Módulos</dt>
+  <dd class="col-sm-8"><%= role_assignment.assigned_modules.presence || "—" %></dd>
 
-  <div>
-    <strong>Restrictions:</strong>
-    <%= role_assignment.restrictions %>
-  </div>
+  <dt class="col-sm-4">Restricciones</dt>
+  <dd class="col-sm-8"><%= simple_format(role_assignment.restrictions.presence || "—") %></dd>
 
-  <div>
-    <strong>Assigned at:</strong>
-    <%= role_assignment.assigned_at %>
-  </div>
+  <dt class="col-sm-4">Asignado desde</dt>
+  <dd class="col-sm-8"><%= l(role_assignment.assigned_at, format: :short) if role_assignment.assigned_at %></dd>
 
-  <div>
-    <strong>Ended at:</strong>
-    <%= role_assignment.ended_at %>
-  </div>
+  <dt class="col-sm-4">Finaliza en</dt>
+  <dd class="col-sm-8"><%= role_assignment.ended_at ? l(role_assignment.ended_at, format: :short) : "—" %></dd>
 
-  <div>
-    <strong>Status:</strong>
-    <%= role_assignment.status %>
-  </div>
-
-</div>
+  <dt class="col-sm-4">Estado</dt>
+  <dd class="col-sm-8"><%= role_assignment.status == "active" ? "Activo" : "Inactivo" %></dd>
+</dl>

@@ -1,0 +1,64 @@
+<%= form_with(model: user) do |form| %>
+  <% if user.errors.any? %>
+    <div class="alert alert-danger">
+      <h2 class="h6">No se pudo guardar el usuario:</h2>
+      <ul class="mb-0">
+        <% user.errors.each do |error| %>
+          <li><%= error.full_message %></li>
+        <% end %>
+      </ul>
+    </div>
+  <% end %>
+
+  <div class="row g-3">
+    <div class="col-md-6">
+      <%= form.label :name, "Nombre", class: "form-label" %>
+      <%= form.text_field :name, class: "form-control" %>
+    </div>
+
+    <div class="col-md-6">
+      <%= form.label :email, "Email", class: "form-label" %>
+      <%= form.email_field :email, class: "form-control", required: true %>
+    </div>
+
+    <div class="col-md-6">
+      <%= form.label :whatsapp_phone, "WhatsApp", class: "form-label" %>
+      <%= form.telephone_field :whatsapp_phone, class: "form-control", placeholder: "+573000000000" %>
+    </div>
+
+    <div class="col-md-6">
+      <%= form.label :status, "Estado", class: "form-label" %>
+      <%= form.select :status, User::STATUSES.map { |status| [status == "active" ? "Activo" : "Inactivo", status] }, {}, class: "form-select" %>
+    </div>
+
+    <div class="col-md-6">
+      <%= form.label :password, user.persisted? ? "Nueva contraseña" : "Contraseña", class: "form-label" %>
+      <%= form.password_field :password, class: "form-control", required: !user.persisted? %>
+      <% if user.persisted? %>
+        <div class="form-text">Déjala en blanco para conservar la contraseña actual.</div>
+      <% end %>
+    </div>
+
+    <div class="col-md-6">
+      <%= form.label :password_confirmation, "Confirmar contraseña", class: "form-label" %>
+      <%= form.password_field :password_confirmation, class: "form-control", required: !user.persisted? %>
+    </div>
+
+    <% unless user.persisted? %>
+      <div class="col-md-6">
+        <%= form.label :initial_business_id, "Negocio inicial", class: "form-label" %>
+        <%= form.collection_select :initial_business_id, @manageable_businesses, :id, :name, { prompt: "Selecciona un negocio" }, class: "form-select", required: true %>
+      </div>
+
+      <div class="col-md-6">
+        <%= form.label :initial_role, "Rol inicial", class: "form-label" %>
+        <%= form.select :initial_role, RoleAssignment::ROLES.map { |role| [role.titleize, role] }, { prompt: "Selecciona un rol" }, class: "form-select", required: true %>
+      </div>
+    <% end %>
+  </div>
+
+  <div class="mt-4 d-flex gap-2">
+    <%= form.submit user.persisted? ? "Guardar cambios" : "Crear usuario", class: "btn btn-primary" %>
+    <%= link_to "Cancelar", user.persisted? ? user_path(user) : users_path, class: "btn btn-outline-secondary" %>
+  </div>
+<% end %>

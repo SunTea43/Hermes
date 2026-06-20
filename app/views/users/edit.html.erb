@@ -1,0 +1,7 @@
+<% content_for :title, "Editar usuario" %>
+
+<%= render PageHeaderComponent.new(title: "Editar usuario", subtitle: @user.display_name) %>
+
+<%= render CardComponent.new do %>
+  <%= render "form", user: @user %>
+<% end %>

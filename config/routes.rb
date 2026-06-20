@@ -16,6 +16,7 @@ Rails.application.routes.draw do
       get  :download_template
     end
   end
+  resources :users, except: :destroy
   resources :role_assignments
   resources :businesses
   devise_for :users, skip: [ :registrations ]

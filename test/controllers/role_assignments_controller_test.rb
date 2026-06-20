@@ -20,7 +20,7 @@ class RoleAssignmentsControllerTest < ActionDispatch::IntegrationTest
       post role_assignments_url, params: { role_assignment: { assigned_at: @role_assignment.assigned_at, assigned_modules: @role_assignment.assigned_modules, business_id: @role_assignment.business_id, ended_at: @role_assignment.ended_at, restrictions: @role_assignment.restrictions, role: "manager", status: @role_assignment.status, user_id: @role_assignment.user_id } }
     end
 
-    assert_redirected_to role_assignment_url(RoleAssignment.last)
+    assert_redirected_to user_url(RoleAssignment.last.user)
   end
 
   test "should show role_assignment" do
@@ -35,7 +35,7 @@ class RoleAssignmentsControllerTest < ActionDispatch::IntegrationTest
 
   test "should update role_assignment" do
     patch role_assignment_url(@role_assignment), params: { role_assignment: { assigned_at: @role_assignment.assigned_at, assigned_modules: @role_assignment.assigned_modules, business_id: @role_assignment.business_id, ended_at: @role_assignment.ended_at, restrictions: @role_assignment.restrictions, role: @role_assignment.role, status: @role_assignment.status, user_id: @role_assignment.user_id } }
-    assert_redirected_to role_assignment_url(@role_assignment)
+    assert_redirected_to user_url(@role_assignment.user)
   end
 
   test "should destroy role_assignment" do
@@ -43,6 +43,6 @@ class RoleAssignmentsControllerTest < ActionDispatch::IntegrationTest
       delete role_assignment_url(@role_assignment)
     end
 
-    assert_redirected_to role_assignments_url
+    assert_redirected_to user_url(@role_assignment.user)
   end
 end
