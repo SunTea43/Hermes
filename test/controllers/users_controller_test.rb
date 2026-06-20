@@ -9,6 +9,15 @@ class UsersControllerTest < ActionDispatch::IntegrationTest
     assert_recognizes({ controller: "devise/sessions", action: "new" }, "/users/sign_in")
   end
 
+  test "should get devise sign in endpoint" do
+    sign_out @user
+
+    get new_user_session_url
+
+    assert_response :success
+    assert_select "form[action=?]", user_session_path
+  end
+
   test "should get index" do
     get users_url
 
