@@ -1,9 +1,9 @@
 <%= form_with(model: role_assignment) do |form| %>
   <% if role_assignment.errors.any? %>
-    <div style="color: red">
-      <h2><%= pluralize(role_assignment.errors.count, "error") %> prohibited this role_assignment from being saved:</h2>
+    <div class="alert alert-danger">
+      <h2 class="h6">No se pudo guardar el rol:</h2>
 
-      <ul>
+      <ul class="mb-0">
         <% role_assignment.errors.each do |error| %>
           <li><%= error.full_message %></li>
         <% end %>
@@ -11,47 +11,50 @@
     </div>
   <% end %>
 
-  <div>
-    <%= form.label :user_id, style: "display: block" %>
-    <%= form.text_field :user_id %>
+  <div class="row g-3">
+    <div class="col-md-6">
+      <%= form.label :user_id, "Usuario", class: "form-label" %>
+      <%= form.collection_select :user_id, @users, :id, :display_name, { prompt: "Selecciona un usuario" }, class: "form-select", required: true %>
+    </div>
+
+    <div class="col-md-6">
+      <%= form.label :business_id, "Negocio", class: "form-label" %>
+      <%= form.collection_select :business_id, @manageable_businesses, :id, :name, { prompt: "Selecciona un negocio" }, class: "form-select", required: true %>
+    </div>
+
+    <div class="col-md-6">
+      <%= form.label :role, "Rol", class: "form-label" %>
+      <%= form.select :role, RoleAssignment::ROLES.map { |role| [role.titleize, role] }, { prompt: "Selecciona un rol" }, class: "form-select", required: true %>
+    </div>
+
+    <div class="col-md-6">
+      <%= form.label :status, "Estado", class: "form-label" %>
+      <%= form.select :status, RoleAssignment::STATUSES.map { |status| [status == "active" ? "Activo" : "Inactivo", status] }, {}, class: "form-select" %>
+    </div>
+
+    <div class="col-md-6">
+      <%= form.label :assigned_modules, "Módulos asignados", class: "form-label" %>
+      <%= form.text_field :assigned_modules, class: "form-control", placeholder: "sales,inventory,reports" %>
+    </div>
+
+    <div class="col-md-6">
+      <%= form.label :assigned_at, "Asignado desde", class: "form-label" %>
+      <%= form.datetime_field :assigned_at, class: "form-control" %>
+    </div>
+
+    <div class="col-md-6">
+      <%= form.label :ended_at, "Finaliza en", class: "form-label" %>
+      <%= form.datetime_field :ended_at, class: "form-control" %>
+    </div>
+
+    <div class="col-12">
+      <%= form.label :restrictions, "Restricciones", class: "form-label" %>
+      <%= form.text_area :restrictions, class: "form-control", rows: 3 %>
+    </div>
   </div>
 
-  <div>
-    <%= form.label :business_id, style: "display: block" %>
-    <%= form.text_field :business_id %>
-  </div>
-
-  <div>
-    <%= form.label :role, style: "display: block" %>
-    <%= form.text_field :role %>
-  </div>
-
-  <div>
-    <%= form.label :assigned_modules, style: "display: block" %>
-    <%= form.text_field :assigned_modules %>
-  </div>
-
-  <div>
-    <%= form.label :restrictions, style: "display: block" %>
-    <%= form.textarea :restrictions %>
-  </div>
-
-  <div>
-    <%= form.label :assigned_at, style: "display: block" %>
-    <%= form.datetime_field :assigned_at %>
-  </div>
-
-  <div>
-    <%= form.label :ended_at, style: "display: block" %>
-    <%= form.datetime_field :ended_at %>
-  </div>
-
-  <div>
-    <%= form.label :status, style: "display: block" %>
-    <%= form.text_field :status %>
-  </div>
-
-  <div>
-    <%= form.submit %>
+  <div class="mt-4 d-flex gap-2">
+    <%= form.submit role_assignment.persisted? ? "Guardar rol" : "Asignar rol", class: "btn btn-primary" %>
+    <%= link_to "Cancelar", role_assignment.user_id.present? ? user_path(role_assignment.user_id) : role_assignments_path, class: "btn btn-outline-secondary" %>
   </div>
 <% end %>

@@ -1,0 +1,70 @@
+<% content_for :title, @user.display_name %>
+
+<%= render PageHeaderComponent.new(title: @user.display_name, subtitle: @user.email) do %>
+  <div class="d-flex gap-2">
+    <%= link_to "+ Asignar rol", new_role_assignment_path(user_id: @user.id), class: "btn btn-primary btn-sm" %>
+    <%= link_to "Editar usuario", edit_user_path(@user), class: "btn btn-outline-secondary btn-sm" %>
+  </div>
+<% end %>
+
+<div class="row g-4">
+  <div class="col-lg-4">
+    <%= render CardComponent.new(title: "Perfil") do %>
+      <dl class="row mb-0">
+        <dt class="col-sm-5">Nombre</dt>
+        <dd class="col-sm-7"><%= @user.name.presence || "—" %></dd>
+
+        <dt class="col-sm-5">Email</dt>
+        <dd class="col-sm-7"><%= @user.email %></dd>
+
+        <dt class="col-sm-5">WhatsApp</dt>
+        <dd class="col-sm-7"><%= @user.whatsapp_phone.presence || "—" %></dd>
+
+        <dt class="col-sm-5">Estado</dt>
+        <dd class="col-sm-7">
+          <% if @user.status == "active" %>
+            <span class="badge bg-success">Activo</span>
+          <% else %>
+            <span class="badge bg-secondary">Inactivo</span>
+          <% end %>
+        </dd>
+      </dl>
+    <% end %>
+  </div>
+
+  <div class="col-lg-8">
+    <%= render CardComponent.new(title: "Roles por negocio") do %>
+      <% if @role_assignments.any? %>
+        <div class="table-responsive">
+          <table class="table table-sm align-middle mb-0">
+            <thead>
+              <tr>
+                <th>Negocio</th>
+                <th>Rol</th>
+                <th>Estado</th>
+                <th>Asignado</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              <% @role_assignments.each do |assignment| %>
+                <tr>
+                  <td><%= assignment.business.name %></td>
+                  <td><span class="badge text-bg-light border"><%= assignment.role %></span></td>
+                  <td><%= assignment.status == "active" ? "Activo" : "Inactivo" %></td>
+                  <td><%= l(assignment.assigned_at, format: :short) if assignment.assigned_at %></td>
+                  <td class="text-end">
+                    <%= link_to "Editar", edit_role_assignment_path(assignment), class: "btn btn-sm btn-outline-secondary" %>
+                    <%= button_to "Eliminar", assignment, method: :delete, class: "btn btn-sm btn-outline-danger", form: { class: "d-inline" } %>
+                  </td>
+                </tr>
+              <% end %>
+            </tbody>
+          </table>
+        </div>
+      <% else %>
+        <p class="text-muted mb-0">Este usuario todavía no tiene roles asignados.</p>
+      <% end %>
+    <% end %>
+  </div>
+</div>

@@ -1,4 +1,6 @@
 class User < ApplicationRecord
+  STATUSES = %w[active inactive].freeze
+
   # Include default devise modules. Others available are:
   # :confirmable, :lockable, :timeoutable, :trackable and :omniauthable
   devise :database_authenticatable,
@@ -11,8 +13,27 @@ class User < ApplicationRecord
   has_many :payments_recorded, class_name: "Payment", foreign_key: :recorded_by_id, dependent: :nullify
   has_many :inventory_movements, dependent: :nullify
 
+  validates :status, inclusion: { in: STATUSES }, allow_blank: true
+
+  before_validation :set_default_status
+
   def role_for(business)
     role_assignments.find_by(business_id: business.id, status: "active")&.role
+  end
+
+  def display_name
+    name.presence || email
+  end
+
+  def accessible_businesses
+    owned = Business.where(owner_id: id)
+    assigned = Business.joins(:role_assignments).where(role_assignments: { user_id: id, status: "active" })
+    Business.where(id: owned.select(:id)).or(Business.where(id: assigned.select(:id))).distinct
+  end
+
+  def manageable_businesses
+    managed_ids = role_assignments.where(role: %w[owner manager], status: "active").select(:business_id)
+    Business.where(owner_id: id).or(Business.where(id: managed_ids)).distinct
   end
 
   def owns?(business)
@@ -27,5 +48,11 @@ class User < ApplicationRecord
     return true if owns?(business)
 
     role_assignments.where(business_id: business.id, status: "active").exists?
+  end
+
+  private
+
+  def set_default_status
+    self.status = "active" if status.blank?
   end
 end

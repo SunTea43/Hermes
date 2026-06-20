@@ -1,11 +1,7 @@
-<% content_for :title, "New role assignment" %>
+<% content_for :title, "Asignar rol" %>
 
-<h1>New role assignment</h1>
+<%= render PageHeaderComponent.new(title: "Asignar rol", subtitle: "Concede acceso a un negocio") %>
 
-<%= render "form", role_assignment: @role_assignment %>
-
-<br>
-
-<div>
-  <%= link_to "Back to role assignments", role_assignments_path %>
-</div>
+<%= render CardComponent.new do %>
+  <%= render "form", role_assignment: @role_assignment %>
+<% end %>

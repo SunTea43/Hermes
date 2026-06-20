@@ -51,6 +51,17 @@ class ProductsControllerTest < ActionDispatch::IntegrationTest
     assert_equal "Arroz Actualizado", @product.reload.name
   end
 
+  test "manager cannot update products from other businesses" do
+    sign_in users(:two)
+
+    patch product_url(products(:one)), params: {
+      product: { name: "Producto no permitido" }
+    }
+
+    assert_redirected_to root_url
+    assert_equal "Arroz", products(:one).reload.name
+  end
+
   test "DELETE destroy removes product" do
     assert_difference "Product.count", -1 do
       delete product_url(@product)

@@ -1,0 +1,7 @@
+<% content_for :title, "Nuevo usuario" %>
+
+<%= render PageHeaderComponent.new(title: "Nuevo usuario", subtitle: "Crea el perfil y su primer rol") %>
+
+<%= render CardComponent.new do %>
+  <%= render "form", user: @user %>
+<% end %>
