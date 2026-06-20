@@ -12,6 +12,9 @@ Rails.application.configure do
   # Show full error reports.
   config.consider_all_requests_local = true
 
+  # Allow Twilio webhooks to reach local development through ngrok.
+  config.hosts << /.*\.ngrok-free\.(app|dev)/
+
   # Enable server timing.
   config.server_timing = true
 
