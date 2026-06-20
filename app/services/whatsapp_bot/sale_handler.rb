@@ -86,8 +86,13 @@ module WhatsappBot
         return
       end
 
-      order = create_sale_order(draft)
+      order, result = create_sale_order(draft)
       @session.clear
+
+      unless result.success?
+        reply("Orden #{order.reference_number} creada, pero no pude actualizar inventario: #{result.errors.join(', ')}")
+        return
+      end
 
       inventory = @business.inventories.find_by(product_id: draft[:product_id])
       stock_msg = inventory ? " Stock #{draft[:product_name]}: #{inventory.current_quantity}#{draft[:unit_measure]}" : ""
@@ -110,8 +115,8 @@ module WhatsappBot
         unit_price: draft[:unit_price],
         subtotal:   total
       )
-      SalesOrders::RecordInventoryExitService.call(order, @user)
-      order
+      result = SalesOrders::RecordInventoryExitService.call(order, user: @user)
+      [ order, result ]
     end
 
     def parse_sale_message
