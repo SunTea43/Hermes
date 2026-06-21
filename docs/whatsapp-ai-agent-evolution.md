@@ -90,11 +90,23 @@ flowchart TD
 
 La evolucion recomendada no reemplaza el webhook ni los servicios de dominio de una vez. El cambio principal es insertar una capa de orquestacion entre WhatsApp y las escrituras: un agente de AI interpreta el pedido, selecciona skills permitidas y nunca escribe directamente sin pasar por autorizacion, validacion, idempotencia y auditoria.
 
+Twilio debe quedar como proveedor inicial de WhatsApp, pero no como una dependencia directa del agente ni del dominio. La arquitectura objetivo agrega un `WhatsApp Provider Adapter` o `Channel Gateway` que normaliza entradas y salidas para que el sistema pueda migrar a WhatsApp Cloud API de Meta u otro BSP sin tocar el AI Agent, las skills, auditoria, idempotencia ni servicios de dominio.
+
 ```mermaid
 flowchart TD
-  U[Usuario en WhatsApp] --> T[Twilio WhatsApp]
-  T --> WH[WhatsApp Webhook Adapter]
-  WH --> Verify[Validacion de origen<br/>firma Twilio, formato, mensaje]
+  U[Usuario en WhatsApp] --> Twilio
+  U --> Meta
+  U --> BSP
+  subgraph Providers[Proveedores WhatsApp]
+    Twilio[Twilio WhatsApp<br/>proveedor inicial]
+    Meta[Meta WhatsApp Cloud API]
+    BSP[Otro BSP]
+  end
+  Twilio -->|inbound| Gateway[WhatsApp Provider Adapter<br/>Channel Gateway]
+  Meta -->|inbound| Gateway
+  BSP -->|inbound| Gateway
+  Gateway --> WH[Webhook Adapter<br/>mensaje entrante normalizado]
+  WH --> Verify[Validacion de origen<br/>firma del proveedor, formato, mensaje]
   Verify --> Identity[Resolucion de identidad<br/>User por whatsapp_phone]
   Identity --> StoreAuth[Resolver tienda autorizada<br/>por admin]
   StoreAuth -->|no autorizada| Deny[Respuesta de rechazo]
@@ -130,7 +142,7 @@ flowchart TD
   SkillRegistry --> RecordPayment
   SkillRegistry --> AdjustInventory
   PolicyGateway --> Audit[Audit Log<br/>request, user, business, skill, result]
-  PolicyGateway --> Idempotency[Idempotency Keys<br/>Twilio MessageSid + skill input hash]
+  PolicyGateway --> Idempotency[Idempotency Keys<br/>provider_message_id + skill input hash]
 
   SearchProducts --> AR[(ActiveRecord models)]
   ReadInventory --> AR
@@ -148,10 +160,13 @@ flowchart TD
   Agent --> Confirm[Confirmacion humana<br/>obligatoria para escrituras]
   Confirm --> PolicyGateway
 
-  Deny --> Sender[WhatsappBot::Sender]
+  Deny --> Sender[WhatsappBot::Sender<br/>contrato saliente normalizado]
   Orchestrator --> Sender
   Agent --> Sender
-  Sender --> T
+  Sender --> Gateway
+  Gateway -->|outbound| Twilio
+  Gateway -->|outbound| Meta
+  Gateway -->|outbound| BSP
 ```
 
 ### Principios de la arquitectura objetivo
@@ -161,6 +176,7 @@ flowchart TD
 - La tienda operativa debe resolverse de forma explicita: seleccion del usuario, default administrado o metadata de autorizacion. Si hay ambiguedad, el agente pregunta antes de actuar.
 - El admin autoriza que una tienda pueda recibir pedidos por WhatsApp/AI y que usuarios concretos puedan operar esa tienda. Esa autorizacion debe validarse antes de cualquier skill.
 - Las escrituras requieren confirmacion conversacional y deben ejecutarse dentro de transacciones, reutilizando servicios de dominio donde existan.
+- Twilio es el proveedor inicial, pero todo codigo de AI Agent, skills, auditoria, idempotencia y dominio debe depender de contratos normalizados del canal, no de parametros, firmas o clientes REST especificos de Twilio.
 
 ## Skills propuestas
 
@@ -184,16 +200,31 @@ Las skills deben replicar capacidades de endpoints existentes sin exponer todo e
 - Usuario autorizado: combinar `User#can_access_business?`, `RoleAssignment.status == "active"` y permisos por modulo (`assigned_modules`) antes de cada skill.
 - Separacion lectura/escritura: el agente puede ejecutar skills de lectura para desambiguar; las skills de escritura requieren confirmacion del usuario con un resumen de efectos.
 - Auditoria: registrar mensaje original, telefono normalizado, usuario, tienda, skill, parametros normalizados, resultado, errores, IDs creados y timestamps.
-- Idempotencia: usar `MessageSid` de Twilio si esta disponible y combinarlo con nombre de skill y hash de parametros normalizados. Si el mismo mensaje se reintenta, devolver el resultado anterior sin duplicar ordenes o pagos.
+- Idempotencia: usar el ID estable del proveedor (`MessageSid` de Twilio al inicio, o el identificador equivalente de Meta/BSP) y combinarlo con nombre de skill y hash de parametros normalizados. Si el mismo mensaje se reintenta, devolver el resultado anterior sin duplicar ordenes o pagos.
 - Validacion de dominio: no confiar en el texto parseado por AI. Las skills deben validar productos, cantidades, precios, estados, stock, ventas pendientes y pertenencia a la tienda.
 - Menor privilegio: las skills no deben recibir modelos arbitrarios ni SQL; deben exponer contratos estrechos, versionados y testeables.
 - Confirmacion y cancelacion: para escrituras, mantener el flujo actual de draft en sesion, pero guardar un payload normalizado que la skill ejecutara solo despues del "si/confirmo".
+
+## Desacoplamiento de Twilio y reduccion de costos
+
+La capa de proveedor debe permitir descartar Twilio cuando haya una alternativa mas economica o conveniente, sin redisenar la conversacion ni las capacidades de negocio. Para lograrlo, el webhook debe transformar cada payload externo en un contrato interno como `InboundWhatsappMessage` con `provider`, `provider_message_id`, `from`, `to`, `body`, `media`, `received_at`, `raw_payload` y metadatos de validacion. De la misma forma, `WhatsappBot::Sender` deberia hablar con un contrato saliente como `OutboundWhatsappMessage` y delegar en el adapter activo para Twilio, Meta Cloud API u otro BSP.
+
+La transicion debe ser reversible y observable:
+
+- Mantener Twilio como proveedor inicial mientras se mide costo, tasa de entrega, latencia, errores por proveedor y reintentos.
+- Preservar idempotencia con IDs del proveedor y hashes normalizados, no con clases o parametros especificos de Twilio.
+- Desacoplar el sender para que jobs, orquestador y agente emitan mensajes salientes sin conocer el cliente REST del proveedor.
+- Activar proveedor por feature flag y, si aplica, por tienda para migrar cohortes pequenas antes de mover todo el trafico.
+- Permitir convivencia temporal: algunas tiendas o tipos de mensaje por Twilio y otras por Meta/BSP, con auditoria indicando proveedor usado.
+- Comparar metricas de costo por conversacion/mensaje, entrega, fallos, reintentos y tiempo de respuesta antes de cambiar el default.
+- Definir rollback simple: volver el flag de la tienda/proveedor a Twilio y conservar los mismos contratos internos, claves idempotentes y trazas.
 
 ## Fases de implementacion
 
 ### Fase 1: endurecer el webhook actual
 
-- Validar firma/origen de Twilio y capturar `MessageSid` para idempotencia.
+- Validar firma/origen de Twilio y capturar `MessageSid` como `provider_message_id` para idempotencia.
+- Introducir contratos internos de mensaje entrante/saliente aunque Twilio siga siendo el unico adapter implementado.
 - Reemplazar `user.owned_businesses.first` por un resolver explicito de tienda autorizada.
 - Agregar una capa de autorizacion para WhatsApp que reutilice Pundit o un gateway equivalente antes de cada handler.
 - Registrar auditoria basica de mensajes entrantes, handler elegido, negocio, resultado y errores.
@@ -218,9 +249,10 @@ Las skills deben replicar capacidades de endpoints existentes sin exponer todo e
 - Versionar contratos de skills como una API interna.
 - Agregar trazabilidad completa entre mensaje WhatsApp, skill, registros creados y movimientos de inventario.
 - Ampliar gradualmente las skills a capacidades nuevas solo cuando tengan policy, auditoria e idempotencia.
+- Evaluar cambio de proveedor con feature flags por tienda, convivencia temporal y rollback documentado antes de retirar Twilio.
 
 ## Compatibilidad con la estructura actual
 
-La evolucion puede convivir con `WhatsappBot::DispatchService` y los handlers actuales durante la migracion. El primer paso no necesita cambiar Twilio ni la ruta publica; basta con insertar componentes internos entre el webhook y las escrituras. Los jobs existentes pueden seguir usando `WhatsappBot::Sender`, aunque conviene que en el futuro tambien registren auditoria de notificaciones salientes.
+La evolucion puede convivir con `WhatsappBot::DispatchService` y los handlers actuales durante la migracion. El primer paso no necesita cambiar Twilio ni la ruta publica; basta con insertar componentes internos entre el proveedor WhatsApp y las escrituras. Los jobs existentes pueden seguir usando `WhatsappBot::Sender`, pero ese sender deberia convertirse en una fachada sobre el adapter activo para que las notificaciones salientes tambien puedan moverse de Twilio a Meta Cloud API u otro BSP con auditoria consistente.
 
 El mayor ajuste conceptual es tratar WhatsApp como otro cliente autorizado del dominio, no como una ruta especial que escribe directo. Las skills deberian convertirse en la frontera estable para que tanto el dispatcher actual como el AI Agent ejecuten las mismas capacidades bajo las mismas reglas.
