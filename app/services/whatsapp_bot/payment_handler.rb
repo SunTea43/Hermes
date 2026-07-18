@@ -14,11 +14,10 @@ module WhatsappBot
     def handle_initial_message
       parsed = parse_payment_message
       unless parsed
-        reply("No entendí. Ejemplo: \"María pagó $10,000\".")
+        reply('No entendí. Ejemplo: "María pagó $10,000".')
         return
       end
 
-      # Buscar la orden de crédito pendiente más reciente del cliente
       order = find_pending_order(parsed[:customer_name])
       unless order
         reply("No encontré cartera pendiente para \"#{parsed[:customer_name]}\".")
@@ -26,16 +25,22 @@ module WhatsappBot
       end
 
       draft = {
-        order_id:      order.id,
+        order_id: order.id,
         customer_name: order.customer_name,
-        amount:        parsed[:amount],
-        order_total:   order.total
+        amount: parsed[:amount],
+        order_total: order.total
       }
 
       remaining = order.total - (order.payments.sum(:amount) || 0)
       new_balance = [ remaining - parsed[:amount], 0 ].max
       @session.set(intent: :payment, step: :awaiting_confirmation, draft: draft)
-      reply("#{order.customer_name} tiene saldo de $#{remaining} (#{order.reference_number}). Abono de $#{parsed[:amount]}.\nSaldo pendiente: $#{new_balance}. ¿Confirmo?")
+      reply(ResponseRenderer.payment_confirm(
+        customer_name: order.customer_name,
+        remaining: remaining,
+        reference_number: order.reference_number,
+        amount: parsed[:amount],
+        new_balance: new_balance
+      ))
     end
 
     def handle_confirmation_step
@@ -43,12 +48,12 @@ module WhatsappBot
 
       if negative?
         @session.clear
-        reply("Pago cancelado.")
+        reply(ResponseRenderer.cancelled(:payment))
         return
       end
 
       unless affirmative?
-        reply("Responde 'sí' para confirmar o 'no' para cancelar.")
+        reply(ResponseRenderer.confirm_yes_no)
         return
       end
 
@@ -62,14 +67,16 @@ module WhatsappBot
       @session.clear
 
       unless result.success?
-        reply("No pude registrar el pago: #{result.errors.join(', ')}")
+        reply(ResponseRenderer.skill_error("registrar el pago", result.errors))
         return
       end
 
       data = result.data
-      reply("✅ Pago registrado. Saldo pendiente #{data[:customer_name]}: $#{data[:remaining]}")
+      reply(ResponseRenderer.payment_recorded(
+        customer_name: data[:customer_name],
+        remaining: data[:remaining]
+      ))
     end
-
 
     def find_pending_order(customer_name)
       @business.sales_orders
