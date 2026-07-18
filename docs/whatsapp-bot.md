@@ -10,11 +10,11 @@ Hermes usa WhatsApp como canal principal de operación. Este documento describe 
 Usuario WhatsApp
       │
       ▼
-Twilio Webhook ──→ POST /webhooks/whatsapp
+Proveedor (Twilio / futuro Meta) ──→ POST /webhooks/whatsapp[/:provider]
       │
       ▼
 WebhooksController
-      │
+      │  (firma + parse → InboundMessage)
       ▼
 WhatsappBot::DispatchService    ← identifica intención
       │
@@ -26,8 +26,10 @@ WhatsappBot::DispatchService    ← identifica intención
       └──→ UnknownHandler       ← menú de ayuda
       │
       ▼
-WhatsappBot::Sender             ← envía respuesta vía Twilio API
+WhatsappBot::Sender             ← fachada → Provider Adapter → API del BSP
 ```
+
+Para cambiar de proveedor por teléfono o por tienda, ver [whatsapp-provider-switching.md](./whatsapp-provider-switching.md).
 
 ---
 
@@ -161,23 +163,12 @@ ngrok http 3000
 ### Enviar mensajes desde Rails
 
 ```ruby
-# app/services/whatsapp_bot/sender.rb
-module WhatsappBot
-  class Sender
-    def self.deliver(to_phone, message)
-      client = Twilio::REST::Client.new(
-        ENV["TWILIO_ACCOUNT_SID"],
-        ENV["TWILIO_AUTH_TOKEN"]
-      )
-      client.messages.create(
-        from: ENV["TWILIO_WHATSAPP_NUMBER"],
-        to:   "whatsapp:#{to_phone}",
-        body: message
-      )
-    end
-  end
-end
+WhatsappBot::Sender.deliver("+573000000001", "Hola")
+# Con contexto de tienda (para overrides por business_id):
+WhatsappBot::Sender.deliver("+573000000001", "Hola", business_id: business.id)
 ```
+
+`Sender` resuelve el adapter vía `WhatsappBot::Providers::Resolver` (ver [whatsapp-provider-switching.md](./whatsapp-provider-switching.md)).
 
 ---
 

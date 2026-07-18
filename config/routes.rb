@@ -1,5 +1,6 @@
 Rails.application.routes.draw do
-  post "/webhooks/whatsapp", to: "webhooks#whatsapp"
+  post "/webhooks/whatsapp", to: "webhooks#whatsapp", as: :webhooks_whatsapp
+  post "/webhooks/whatsapp/:provider", to: "webhooks#whatsapp", as: :whatsapp_provider_webhook
 
   resources :inventory_movements
   resources :inventories

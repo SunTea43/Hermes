@@ -4,14 +4,23 @@ class WebhooksController < ApplicationController
   skip_after_action :verify_pundit_authorization
 
   def whatsapp
-    from    = params[:From].to_s.delete_prefix("whatsapp:")
-    body    = params[:Body].to_s.strip
-    user    = User.find_by(whatsapp_phone: from)
+    adapter = WhatsappBot::Providers::Resolver.for_inbound(params[:provider])
+
+    unless adapter.valid_signature?(request)
+      head :forbidden
+      return
+    end
+
+    inbound = adapter.parse_inbound(request)
+    user = User.find_by(whatsapp_phone: inbound.from)
 
     if user.nil?
-      WhatsappBot::Sender.deliver(from, "No encontré una cuenta asociada a este número. Registrate en #{ENV.fetch('APP_HOST', 'la app')}.")
+      WhatsappBot::Sender.deliver(
+        inbound.from,
+        "No encontré una cuenta asociada a este número. Registrate en #{ENV.fetch('APP_HOST', 'la app')}."
+      )
     else
-      WhatsappBot::DispatchService.call(user, body)
+      WhatsappBot::DispatchService.call(user, inbound.body)
     end
 
     head :ok
