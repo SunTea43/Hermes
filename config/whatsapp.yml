@@ -9,15 +9,34 @@ default: &default
   # Example:
   #   "12": twilio
   business_overrides: {}
+  agent:
+    # Global default when a business has whatsapp_agent=default
+    default: regex
+    llm_provider: openai # openai | fake
+    model: gpt-4o-mini
+    temperature: 0
+    confidence_threshold: 0.7
 
 development:
   <<: *default
   validate_signatures: false
+  agent:
+    default: regex
+    llm_provider: fake
+    model: gpt-4o-mini
+    temperature: 0
+    confidence_threshold: 0.7
 
 test:
   <<: *default
   default_provider: test
   validate_signatures: false
+  agent:
+    default: regex
+    llm_provider: fake
+    model: gpt-4o-mini
+    temperature: 0
+    confidence_threshold: 0.7
 
 production:
   <<: *default

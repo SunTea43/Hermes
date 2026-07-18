@@ -1,4 +1,6 @@
 class Business < ApplicationRecord
+  WHATSAPP_AGENTS = %w[regex llm default].freeze
+
   belongs_to :owner, class_name: "User", optional: true
 
   has_many :products, dependent: :destroy
@@ -16,10 +18,21 @@ class Business < ApplicationRecord
     numericality: { only_integer: true },
     if: -> { owner_id.present? }
   validate :owner_must_exist, if: -> { owner_id.present? }
+  validates :whatsapp_agent, inclusion: { in: WHATSAPP_AGENTS }
 
   after_save :sync_owner_role_assignment!, if: :saved_change_to_owner_id?
 
   scope :whatsapp_enabled, -> { where(whatsapp_enabled: true) }
+
+  def resolved_whatsapp_agent
+    agent = whatsapp_agent.presence || "default"
+    agent == "default" ? WhatsappBot::Config.agent_default.to_s : agent
+  end
+
+  def llm_whatsapp_agent?
+    resolved_whatsapp_agent == "llm"
+  end
+
 
   private
 

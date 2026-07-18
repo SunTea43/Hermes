@@ -4,6 +4,7 @@ one:
   currency: COP
   owner: one
   whatsapp_enabled: true
+  whatsapp_agent: regex
 
 two:
   name: Distribuidora Norte
@@ -11,3 +12,5 @@ two:
   currency: COP
   owner: two
   whatsapp_enabled: true
+  whatsapp_agent: regex
+

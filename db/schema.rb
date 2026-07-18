@@ -21,6 +21,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_19_212000) do
     t.string "name"
     t.bigint "owner_id"
     t.datetime "updated_at", null: false
+    t.string "whatsapp_agent", default: "regex", null: false
     t.boolean "whatsapp_enabled", default: false, null: false
     t.index [ "owner_id" ], name: "index_businesses_on_owner_id"
   end
