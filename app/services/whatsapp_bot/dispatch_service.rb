@@ -6,34 +6,39 @@ module WhatsappBot
     INVENTORY_PATTERNS = /\b(cuánto|cuanto|stock|inventario|queda|hay|bajo)\b/i
     REPORT_PATTERNS = /\b(reporte|resumen|ventas del día|ventas de hoy|balance)\b/i
 
-    def self.call(user, message)
-      new(user, message).call
+    def self.call(user, message, business:, audit: nil)
+      new(user, message, business: business, audit: audit).call
     end
 
-    def initialize(user, message)
-      @user    = user
+    def initialize(user, message, business:, audit: nil)
+      @user = user
       @message = message
-      @session = Session.new(user)
+      @business = business
+      @audit = audit
+      @session = Session.new(user, business: business)
     end
 
     def call
-      state = @session.get
+      AuthorizationGateway.authorize!(user: @user, business: @business)
 
-      # Si hay un flujo en curso, continuar ese handler
-      if state
-        handler_for_state(state).call
+      state = @session.get
+      handler = if state
+        handler_for_state(state)
       else
-        handler_for_message.call
+        handler_for_message
       end
+
+      @audit&.mark_dispatched!(handler_name: handler.class.name, business: @business)
+      handler.call
     end
 
     private
 
     def handler_for_state(state)
       case state[:intent]
-      when :sale      then SaleHandler.new(@user, @message, @session, state)
-      when :purchase  then PurchaseHandler.new(@user, @message, @session, state)
-      when :payment   then PaymentHandler.new(@user, @message, @session, state)
+      when :sale then SaleHandler.new(@user, @message, @session, state, business: @business)
+      when :purchase then PurchaseHandler.new(@user, @message, @session, state, business: @business)
+      when :payment then PaymentHandler.new(@user, @message, @session, state, business: @business)
       else
         @session.clear
         handler_for_message
@@ -42,12 +47,12 @@ module WhatsappBot
 
     def handler_for_message
       case @message
-      when SALE_PATTERNS      then SaleHandler.new(@user, @message, @session, {})
-      when PURCHASE_PATTERNS  then PurchaseHandler.new(@user, @message, @session, {})
-      when PAYMENT_PATTERNS   then PaymentHandler.new(@user, @message, @session, {})
-      when INVENTORY_PATTERNS then InventoryQueryHandler.new(@user, @message, @session)
-      when REPORT_PATTERNS    then ReportHandler.new(@user, @message, @session)
-      else                         UnknownHandler.new(@user, @message, @session)
+      when SALE_PATTERNS then SaleHandler.new(@user, @message, @session, {}, business: @business)
+      when PURCHASE_PATTERNS then PurchaseHandler.new(@user, @message, @session, {}, business: @business)
+      when PAYMENT_PATTERNS then PaymentHandler.new(@user, @message, @session, {}, business: @business)
+      when INVENTORY_PATTERNS then InventoryQueryHandler.new(@user, @message, @session, business: @business)
+      when REPORT_PATTERNS then ReportHandler.new(@user, @message, @session, business: @business)
+      else UnknownHandler.new(@user, @message, @session, business: @business)
       end
     end
   end

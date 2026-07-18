@@ -11,21 +11,24 @@ class WebhooksControllerTest < ActionDispatch::IntegrationTest
 
   test "unknown phone gets registration reply and ok" do
     with_test_provider do
-      post webhooks_whatsapp_path, params: {
-        From: "whatsapp:+579999999999",
-        To: "whatsapp:+14155238886",
-        Body: "Hola",
-        MessageSid: "SMunknown"
-      }
+      assert_difference "WhatsappMessageAudit.count", 1 do
+        post webhooks_whatsapp_path, params: {
+          From: "whatsapp:+579999999999",
+          To: "whatsapp:+14155238886",
+          Body: "Hola",
+          MessageSid: "SMunknown"
+        }
+      end
     end
 
     assert_response :ok
     delivered = WhatsappBot::Providers::TestAdapter.deliveries.last
     assert_equal "+579999999999", delivered.to
     assert_match(/No encontré una cuenta/, delivered.body)
+    assert_equal "denied", WhatsappMessageAudit.last.status
   end
 
-  test "known phone dispatches to bot" do
+  test "known phone dispatches to bot when business is authorized" do
     user = users(:one)
     replies_before = WhatsappBot::Providers::TestAdapter.deliveries.size
 
@@ -40,6 +43,26 @@ class WebhooksControllerTest < ActionDispatch::IntegrationTest
 
     assert_response :ok
     assert WhatsappBot::Providers::TestAdapter.deliveries.size > replies_before
+    audit = WhatsappMessageAudit.last
+    assert_equal "dispatched", audit.status
+    assert_equal businesses(:one), audit.business
+  end
+
+  test "denies when business is not whatsapp enabled" do
+    businesses(:one).update!(whatsapp_enabled: false)
+    user = users(:one)
+
+    with_test_provider do
+      post webhooks_whatsapp_path, params: {
+        From: "whatsapp:#{user.whatsapp_phone}",
+        Body: "ayuda",
+        MessageSid: "SMdisabled"
+      }
+    end
+
+    assert_response :ok
+    assert_match(/no tiene una tienda autorizada/, WhatsappBot::Providers::TestAdapter.deliveries.last.body)
+    assert_equal "denied", WhatsappMessageAudit.last.status
   end
 
   test "explicit provider route uses named adapter" do

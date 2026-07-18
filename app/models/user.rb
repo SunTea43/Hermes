@@ -12,8 +12,11 @@ class User < ApplicationRecord
   has_many :sales_orders_created, class_name: "SalesOrder", foreign_key: :created_by_id, dependent: :nullify
   has_many :payments_recorded, class_name: "Payment", foreign_key: :recorded_by_id, dependent: :nullify
   has_many :inventory_movements, dependent: :nullify
+  has_many :whatsapp_message_audits, dependent: :nullify
+  belongs_to :default_whatsapp_business, class_name: "Business", optional: true
 
   validates :status, inclusion: { in: STATUSES }, allow_blank: true
+  validate :default_whatsapp_business_must_be_accessible, if: -> { default_whatsapp_business_id.present? }
 
   before_validation :set_default_status
 
@@ -54,5 +57,11 @@ class User < ApplicationRecord
 
   def set_default_status
     self.status = "active" if status.blank?
+  end
+
+  def default_whatsapp_business_must_be_accessible
+    return if can_access_business?(default_whatsapp_business)
+
+    errors.add(:default_whatsapp_business_id, "must be an accessible business")
   end
 end

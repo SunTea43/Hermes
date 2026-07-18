@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_06_16_033343) do
+ActiveRecord::Schema[8.1].define(version: 2026_07_18_201519) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -21,7 +21,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_06_16_033343) do
     t.string "name"
     t.bigint "owner_id"
     t.datetime "updated_at", null: false
-    t.index ["owner_id"], name: "index_businesses_on_owner_id"
+    t.boolean "whatsapp_enabled", default: false, null: false
+    t.index [ "owner_id" ], name: "index_businesses_on_owner_id"
   end
 
   create_table "inventories", force: :cascade do |t|
@@ -32,9 +33,9 @@ ActiveRecord::Schema[8.1].define(version: 2026_06_16_033343) do
     t.decimal "minimum_alert_quantity"
     t.bigint "product_id", null: false
     t.datetime "updated_at", null: false
-    t.index ["business_id", "product_id"], name: "index_inventories_on_business_id_and_product_id", unique: true
-    t.index ["business_id"], name: "index_inventories_on_business_id"
-    t.index ["product_id"], name: "index_inventories_on_product_id"
+    t.index [ "business_id", "product_id" ], name: "index_inventories_on_business_id_and_product_id", unique: true
+    t.index [ "business_id" ], name: "index_inventories_on_business_id"
+    t.index [ "product_id" ], name: "index_inventories_on_product_id"
   end
 
   create_table "inventory_movements", force: :cascade do |t|
@@ -49,9 +50,9 @@ ActiveRecord::Schema[8.1].define(version: 2026_06_16_033343) do
     t.string "reference_type"
     t.datetime "updated_at", null: false
     t.bigint "user_id", null: false
-    t.index ["inventory_id"], name: "index_inventory_movements_on_inventory_id"
-    t.index ["reference_type", "reference_id"], name: "index_inventory_movements_on_reference_type_and_reference_id"
-    t.index ["user_id"], name: "index_inventory_movements_on_user_id"
+    t.index [ "inventory_id" ], name: "index_inventory_movements_on_inventory_id"
+    t.index [ "reference_type", "reference_id" ], name: "index_inventory_movements_on_reference_type_and_reference_id"
+    t.index [ "user_id" ], name: "index_inventory_movements_on_user_id"
   end
 
   create_table "payments", force: :cascade do |t|
@@ -65,8 +66,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_06_16_033343) do
     t.bigint "recorded_by_id"
     t.bigint "sales_order_id", null: false
     t.datetime "updated_at", null: false
-    t.index ["recorded_by_id"], name: "index_payments_on_recorded_by_id"
-    t.index ["sales_order_id"], name: "index_payments_on_sales_order_id"
+    t.index [ "recorded_by_id" ], name: "index_payments_on_recorded_by_id"
+    t.index [ "sales_order_id" ], name: "index_payments_on_sales_order_id"
   end
 
   create_table "product_prices", force: :cascade do |t|
@@ -78,7 +79,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_06_16_033343) do
     t.date "start_at"
     t.decimal "unit_price"
     t.datetime "updated_at", null: false
-    t.index ["product_id"], name: "index_product_prices_on_product_id"
+    t.index [ "product_id" ], name: "index_product_prices_on_product_id"
   end
 
   create_table "products", force: :cascade do |t|
@@ -89,7 +90,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_06_16_033343) do
     t.string "status"
     t.string "unit_measure"
     t.datetime "updated_at", null: false
-    t.index ["business_id"], name: "index_products_on_business_id"
+    t.index [ "business_id" ], name: "index_products_on_business_id"
   end
 
   create_table "purchase_order_items", force: :cascade do |t|
@@ -101,8 +102,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_06_16_033343) do
     t.decimal "subtotal"
     t.decimal "unit_price"
     t.datetime "updated_at", null: false
-    t.index ["product_id"], name: "index_purchase_order_items_on_product_id"
-    t.index ["purchase_order_id"], name: "index_purchase_order_items_on_purchase_order_id"
+    t.index [ "product_id" ], name: "index_purchase_order_items_on_product_id"
+    t.index [ "purchase_order_id" ], name: "index_purchase_order_items_on_purchase_order_id"
   end
 
   create_table "purchase_orders", force: :cascade do |t|
@@ -116,9 +117,9 @@ ActiveRecord::Schema[8.1].define(version: 2026_06_16_033343) do
     t.string "supplier_name"
     t.decimal "total"
     t.datetime "updated_at", null: false
-    t.index ["business_id", "reference_number"], name: "index_purchase_orders_on_business_id_and_reference_number", unique: true
-    t.index ["business_id"], name: "index_purchase_orders_on_business_id"
-    t.index ["created_by_id"], name: "index_purchase_orders_on_created_by_id"
+    t.index [ "business_id", "reference_number" ], name: "index_purchase_orders_on_business_id_and_reference_number", unique: true
+    t.index [ "business_id" ], name: "index_purchase_orders_on_business_id"
+    t.index [ "created_by_id" ], name: "index_purchase_orders_on_created_by_id"
   end
 
   create_table "role_assignments", force: :cascade do |t|
@@ -132,9 +133,9 @@ ActiveRecord::Schema[8.1].define(version: 2026_06_16_033343) do
     t.string "status"
     t.datetime "updated_at", null: false
     t.bigint "user_id", null: false
-    t.index ["business_id"], name: "index_role_assignments_on_business_id"
-    t.index ["user_id", "business_id", "role"], name: "index_role_assignments_on_user_business_role", unique: true
-    t.index ["user_id"], name: "index_role_assignments_on_user_id"
+    t.index [ "business_id" ], name: "index_role_assignments_on_business_id"
+    t.index [ "user_id", "business_id", "role" ], name: "index_role_assignments_on_user_business_role", unique: true
+    t.index [ "user_id" ], name: "index_role_assignments_on_user_id"
   end
 
   create_table "sales_order_items", force: :cascade do |t|
@@ -146,8 +147,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_06_16_033343) do
     t.decimal "subtotal"
     t.decimal "unit_price"
     t.datetime "updated_at", null: false
-    t.index ["product_id"], name: "index_sales_order_items_on_product_id"
-    t.index ["sales_order_id"], name: "index_sales_order_items_on_sales_order_id"
+    t.index [ "product_id" ], name: "index_sales_order_items_on_product_id"
+    t.index [ "sales_order_id" ], name: "index_sales_order_items_on_sales_order_id"
   end
 
   create_table "sales_orders", force: :cascade do |t|
@@ -163,13 +164,14 @@ ActiveRecord::Schema[8.1].define(version: 2026_06_16_033343) do
     t.string "reference_number"
     t.decimal "total"
     t.datetime "updated_at", null: false
-    t.index ["business_id", "reference_number"], name: "index_sales_orders_on_business_id_and_reference_number", unique: true
-    t.index ["business_id"], name: "index_sales_orders_on_business_id"
-    t.index ["created_by_id"], name: "index_sales_orders_on_created_by_id"
+    t.index [ "business_id", "reference_number" ], name: "index_sales_orders_on_business_id_and_reference_number", unique: true
+    t.index [ "business_id" ], name: "index_sales_orders_on_business_id"
+    t.index [ "created_by_id" ], name: "index_sales_orders_on_created_by_id"
   end
 
   create_table "users", force: :cascade do |t|
     t.datetime "created_at", null: false
+    t.bigint "default_whatsapp_business_id"
     t.string "email", default: "", null: false
     t.string "encrypted_password", default: "", null: false
     t.datetime "last_active_at"
@@ -180,9 +182,29 @@ ActiveRecord::Schema[8.1].define(version: 2026_06_16_033343) do
     t.string "status"
     t.datetime "updated_at", null: false
     t.string "whatsapp_phone"
-    t.index ["email"], name: "index_users_on_email", unique: true
-    t.index ["reset_password_token"], name: "index_users_on_reset_password_token", unique: true
-    t.index ["whatsapp_phone"], name: "index_users_on_whatsapp_phone", unique: true
+    t.index [ "default_whatsapp_business_id" ], name: "index_users_on_default_whatsapp_business_id"
+    t.index [ "email" ], name: "index_users_on_email", unique: true
+    t.index [ "reset_password_token" ], name: "index_users_on_reset_password_token", unique: true
+    t.index [ "whatsapp_phone" ], name: "index_users_on_whatsapp_phone", unique: true
+  end
+
+  create_table "whatsapp_message_audits", force: :cascade do |t|
+    t.text "body"
+    t.bigint "business_id"
+    t.datetime "created_at", null: false
+    t.text "error_message"
+    t.string "from_phone", null: false
+    t.string "handler_name"
+    t.jsonb "metadata", default: {}, null: false
+    t.string "provider", null: false
+    t.string "provider_message_id"
+    t.string "status", default: "received", null: false
+    t.datetime "updated_at", null: false
+    t.bigint "user_id"
+    t.index [ "business_id" ], name: "index_whatsapp_message_audits_on_business_id"
+    t.index [ "provider_message_id" ], name: "index_whatsapp_message_audits_on_provider_message_id"
+    t.index [ "status" ], name: "index_whatsapp_message_audits_on_status"
+    t.index [ "user_id" ], name: "index_whatsapp_message_audits_on_user_id"
   end
 
   add_foreign_key "businesses", "users", column: "owner_id"
@@ -204,4 +226,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_06_16_033343) do
   add_foreign_key "sales_order_items", "sales_orders"
   add_foreign_key "sales_orders", "businesses"
   add_foreign_key "sales_orders", "users", column: "created_by_id"
+  add_foreign_key "users", "businesses", column: "default_whatsapp_business_id"
+  add_foreign_key "whatsapp_message_audits", "businesses"
+  add_foreign_key "whatsapp_message_audits", "users"
 end
