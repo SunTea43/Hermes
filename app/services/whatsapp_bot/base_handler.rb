@@ -1,11 +1,12 @@
 module WhatsappBot
   class BaseHandler
-    def initialize(user, message, session, state = {}, business: nil)
+    def initialize(user, message, session, state = {}, business: nil, idempotency_key: nil)
       @user = user
       @message = message
       @session = session
       @state = state
       @business = business
+      @idempotency_key = idempotency_key
     end
 
     def call
@@ -16,6 +17,12 @@ module WhatsappBot
 
     def reply(text)
       Sender.deliver(@user.whatsapp_phone, text, business_id: @business&.id)
+    end
+
+    def skill_key(skill_name)
+      return nil if @idempotency_key.blank?
+
+      "#{@idempotency_key}:#{skill_name}"
     end
 
     def affirmative?

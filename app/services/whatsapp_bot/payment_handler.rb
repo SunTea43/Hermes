@@ -52,23 +52,24 @@ module WhatsappBot
         return
       end
 
-      order = SalesOrder.find(draft[:order_id])
-      payment = order.payments.create!(
-        amount:         draft[:amount],
-        payment_method: "cash",
-        payment_type:   "collection",
-        payment_status: "completed",
-        paid_at:        Time.current,
-        recorded_by:    @user
+      result = Skills::Registry.call(
+        "registrar_pago",
+        user: @user,
+        business: @business,
+        input: draft,
+        idempotency_key: skill_key("registrar_pago")
       )
-
-      total_paid = order.payments.sum(:amount)
-      remaining  = order.total - total_paid
-      order.update!(payment_status: remaining <= 0 ? "paid" : "partial")
-
       @session.clear
-      reply("✅ Pago registrado. Saldo pendiente #{order.customer_name}: $#{[ remaining, 0 ].max}")
+
+      unless result.success?
+        reply("No pude registrar el pago: #{result.errors.join(', ')}")
+        return
+      end
+
+      data = result.data
+      reply("✅ Pago registrado. Saldo pendiente #{data[:customer_name]}: $#{data[:remaining]}")
     end
+
 
     def find_pending_order(customer_name)
       @business.sales_orders

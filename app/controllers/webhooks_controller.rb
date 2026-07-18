@@ -86,7 +86,8 @@ class WebhooksController < ApplicationController
       user,
       inbound.body,
       business: resolution.business,
-      audit: audit
+      audit: audit,
+      idempotency_key: inbound.provider_message_id
     )
   rescue WhatsappBot::AuthorizationGateway::NotAuthorized => e
     audit.mark_denied!(error_message: e.message, business: resolution&.business)

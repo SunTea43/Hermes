@@ -1,30 +1,22 @@
 module WhatsappBot
   class ReportHandler < BaseHandler
     def call
-      today   = Date.current
-      orders  = @business.sales_orders.where(created_at: today.all_day)
-      total   = orders.sum(:total)
-      cash    = orders.where(payment_condition: "cash").sum(:total)
-      credit  = orders.where(payment_condition: "credit").sum(:total)
-      count   = orders.count
-
-      pending = @business.sales_orders
-                         .where(payment_condition: "credit")
-                         .where(payment_status: %w[pending partial])
-                         .sum(:total)
-
-      low_count = @business.inventories
-                           .where("current_quantity < minimum_alert_quantity")
-                           .count
+      result = Skills::Registry.call(
+        "consultar_resumen_ventas",
+        user: @user,
+        business: @business,
+        input: {}
+      )
+      data = result.data
 
       lines = [
-        "📊 Resumen del día #{today.strftime('%d/%m')}:",
-        "- Ventas: #{count} (total $#{total})",
-        "  • Contado: $#{cash}",
-        "  • Crédito: $#{credit}",
-        "- Cartera total pendiente: $#{pending}"
+        "📊 Resumen del día #{data[:date].strftime('%d/%m')}:",
+        "- Ventas: #{data[:count]} (total $#{data[:total]})",
+        "  • Contado: $#{data[:cash]}",
+        "  • Crédito: $#{data[:credit]}",
+        "- Cartera total pendiente: $#{data[:pending_portfolio]}"
       ]
-      lines << "⚠️ #{low_count} productos bajo mínimo" if low_count > 0
+      lines << "⚠️ #{data[:low_stock_count]} productos bajo mínimo" if data[:low_stock_count].to_i.positive?
 
       reply(lines.join("\n"))
     end

@@ -86,37 +86,23 @@ module WhatsappBot
         return
       end
 
-      order, result = create_sale_order(draft)
+      result = Skills::Registry.call(
+        "registrar_venta",
+        user: @user,
+        business: @business,
+        input: draft,
+        idempotency_key: skill_key("registrar_venta")
+      )
       @session.clear
 
       unless result.success?
-        reply("Orden #{order.reference_number} creada, pero no pude actualizar inventario: #{result.errors.join(', ')}")
+        reply("No pude registrar la venta: #{result.errors.join(', ')}")
         return
       end
 
-      inventory = @business.inventories.find_by(product_id: draft[:product_id])
-      stock_msg = inventory ? " Stock #{draft[:product_name]}: #{inventory.current_quantity}#{draft[:unit_measure]}" : ""
-      reply("✅ #{order.reference_number} registrada.#{stock_msg}")
-    end
-
-    def create_sale_order(draft)
-      total = draft[:quantity] * draft[:unit_price]
-      order = @business.sales_orders.create!(
-        customer_name:     draft[:customer_name],
-        payment_condition: draft[:payment_condition],
-        payment_status:    "pending",
-        total:             total,
-        created_by:        @user,
-        reference_number:  generate_reference
-      )
-      order.sales_order_items.create!(
-        product_id: draft[:product_id],
-        quantity:   draft[:quantity],
-        unit_price: draft[:unit_price],
-        subtotal:   total
-      )
-      result = SalesOrders::RecordInventoryExitService.call(order, user: @user)
-      [ order, result ]
+      data = result.data
+      stock_msg = data[:current_quantity] ? " Stock #{data[:product_name]}: #{data[:current_quantity]}#{data[:unit_measure]}" : ""
+      reply("✅ #{data[:reference_number]} registrada.#{stock_msg}")
     end
 
     def parse_sale_message
@@ -130,11 +116,6 @@ module WhatsappBot
 
     def find_product(name)
       @business.products.active.where("lower(name) LIKE ?", "%#{name.downcase}%").first
-    end
-
-    def generate_reference
-      last = @business.sales_orders.maximum(:id).to_i
-      "VEN-#{format('%03d', last + 1)}"
     end
   end
 end
