@@ -1,0 +1,7 @@
+- id: payment_basic
+  message: "María pagó $10000"
+  expected:
+    intent: payment
+    entities:
+      customer_name: María
+      amount: 10000

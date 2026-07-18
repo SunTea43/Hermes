@@ -1,0 +1,4 @@
+intent_accuracy: 0.9
+entity_exact_match: 0.75
+consistency: 0.95
+consistency_runs: 3

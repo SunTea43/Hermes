@@ -1,0 +1,25 @@
+- id: sale_basic
+  message: "Vendí 10kg de arroz"
+  expected:
+    intent: sale
+    entities:
+      quantity: 10
+      product_name: arroz
+
+- id: sale_credit_jargon
+  message: "Fiado a María 5kg arroz"
+  expected:
+    intent: sale
+    entities:
+      quantity: 5
+      product_name: arroz
+      customer_name: María
+      payment_condition: credit
+
+- id: sale_typo
+  message: "vendi 2 arrozz"
+  expected:
+    intent: sale
+    entities:
+      quantity: 2
+      product_name: arrozz

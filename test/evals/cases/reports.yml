@@ -1,0 +1,4 @@
+- id: report_daily
+  message: "Reporte del día"
+  expected:
+    intent: report
