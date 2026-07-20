@@ -1,11 +1,11 @@
 module WhatsappBot
   class BaseHandler
-    def initialize(user, message, session, state = {})
-      @user    = user
+    def initialize(user, message, session, state = {}, business: nil)
+      @user = user
       @message = message
       @session = session
-      @state   = state
-      @business = user.owned_businesses.first
+      @state = state
+      @business = business
     end
 
     def call
@@ -15,7 +15,7 @@ module WhatsappBot
     private
 
     def reply(text)
-      Sender.deliver(@user.whatsapp_phone, text)
+      Sender.deliver(@user.whatsapp_phone, text, business_id: @business&.id)
     end
 
     def affirmative?

@@ -64,6 +64,8 @@ class UsersControllerTest < ActionDispatch::IntegrationTest
     get edit_user_url(@user)
 
     assert_response :success
+    assert_select "select[name='user[default_whatsapp_business_id]']"
+    assert_select "input[name='user[whatsapp_business_ids][]']", count: 0
   end
 
   test "should update user without changing password" do
@@ -109,5 +111,42 @@ class UsersControllerTest < ActionDispatch::IntegrationTest
     assert_redirected_to user_url(users(:two))
     assert_equal "viewer", users(:two).role_for(businesses(:one))
     assert_equal "operator", users(:two).role_for(businesses(:two))
+  end
+
+  test "should set default whatsapp business without touching access" do
+    target = users(:two)
+    business = businesses(:one)
+    RoleAssignment.create!(
+      user: target,
+      business: business,
+      role: "viewer",
+      status: "active",
+      assigned_at: Time.current,
+      whatsapp_enabled: true,
+      whatsapp_authorized_by: @user,
+      whatsapp_authorized_at: Time.current
+    )
+    RoleAssignment.create!(
+      user: @user,
+      business: businesses(:two),
+      role: "manager",
+      status: "active",
+      assigned_at: Time.current
+    )
+
+    patch user_url(target), params: {
+      user: {
+        name: target.name,
+        email: target.email,
+        whatsapp_phone: target.whatsapp_phone,
+        status: target.status,
+        password: "",
+        password_confirmation: "",
+        default_whatsapp_business_id: business.id
+      }
+    }
+
+    assert_redirected_to user_url(target)
+    assert_equal business, target.reload.default_whatsapp_business
   end
 end

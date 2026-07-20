@@ -9,6 +9,9 @@ one:
   assigned_at: 2026-06-14 21:49:45
   ended_at:
   status: active
+  whatsapp_enabled: true
+  whatsapp_authorized_by: one
+  whatsapp_authorized_at: 2026-06-14 21:49:45
 
 two:
   user: two
@@ -19,3 +22,6 @@ two:
   assigned_at: 2026-06-14 21:49:45
   ended_at:
   status: active
+  whatsapp_enabled: true
+  whatsapp_authorized_by: two
+  whatsapp_authorized_at: 2026-06-14 21:49:45

@@ -32,4 +32,14 @@ class UserTest < ActiveSupport::TestCase
   test "can_access_business? false with no assignment" do
     assert_not users(:two).can_access_business?(businesses(:one))
   end
+
+  test "whatsapp authorization comes from the active role assignment" do
+    user = users(:one)
+    business = businesses(:one)
+
+    assert user.whatsapp_authorized_for?(business)
+
+    role_assignments(:one).update!(whatsapp_enabled: false)
+    assert_not user.whatsapp_authorized_for?(business)
+  end
 end

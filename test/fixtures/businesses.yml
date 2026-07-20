@@ -3,9 +3,11 @@ one:
   description: Tienda de víveres y abarrotes
   currency: COP
   owner: one
+  whatsapp_enabled: true
 
 two:
   name: Distribuidora Norte
   description: Distribuidora de productos
   currency: COP
   owner: two
+  whatsapp_enabled: true

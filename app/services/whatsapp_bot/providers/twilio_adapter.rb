@@ -16,10 +16,7 @@ module WhatsappBot
           body: params[:Body].presence || params["Body"],
           media: media_from(params),
           received_at: Time.current,
-          raw_payload: params.to_unsafe_h.slice(
-            "MessageSid", "AccountSid", "From", "To", "Body",
-            "NumMedia", "SmsStatus", "WaId"
-          )
+          raw_payload: raw_payload_from(params)
         )
       end
 
@@ -61,6 +58,19 @@ module WhatsappBot
             content_type: params["MediaContentType#{index}"]
           }.compact
         end
+      end
+
+      def raw_payload_from(params)
+        payload = if params.respond_to?(:to_unsafe_h)
+          params.to_unsafe_h
+        else
+          params.to_h
+        end
+
+        payload.with_indifferent_access.slice(
+          "MessageSid", "AccountSid", "From", "To", "Body",
+          "NumMedia", "SmsStatus", "WaId"
+        )
       end
     end
   end

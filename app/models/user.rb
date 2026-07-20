@@ -12,8 +12,22 @@ class User < ApplicationRecord
   has_many :sales_orders_created, class_name: "SalesOrder", foreign_key: :created_by_id, dependent: :nullify
   has_many :payments_recorded, class_name: "Payment", foreign_key: :recorded_by_id, dependent: :nullify
   has_many :inventory_movements, dependent: :nullify
+  has_many :whatsapp_message_audits, dependent: :nullify
+  has_many :whatsapp_authorized_role_assignments,
+    -> { where(status: "active", whatsapp_enabled: true) },
+    class_name: "RoleAssignment"
+  has_many :authorized_whatsapp_businesses,
+    through: :whatsapp_authorized_role_assignments,
+    source: :business
+  has_many :granted_whatsapp_role_assignments,
+    class_name: "RoleAssignment",
+    foreign_key: :whatsapp_authorized_by_id,
+    dependent: :nullify,
+    inverse_of: :whatsapp_authorized_by
+  belongs_to :default_whatsapp_business, class_name: "Business", optional: true
 
   validates :status, inclusion: { in: STATUSES }, allow_blank: true
+  validate :default_whatsapp_business_must_be_accessible, if: -> { default_whatsapp_business_id.present? }
 
   before_validation :set_default_status
 
@@ -26,14 +40,14 @@ class User < ApplicationRecord
   end
 
   def accessible_businesses
-    owned = Business.where(owner_id: id)
-    assigned = Business.joins(:role_assignments).where(role_assignments: { user_id: id, status: "active" })
-    Business.where(id: owned.select(:id)).or(Business.where(id: assigned.select(:id))).distinct
+    Business.joins(:role_assignments)
+      .where(role_assignments: { user_id: id, status: "active" })
+      .distinct
   end
 
   def manageable_businesses
     managed_ids = role_assignments.where(role: %w[owner manager], status: "active").select(:business_id)
-    Business.where(owner_id: id).or(Business.where(id: managed_ids)).distinct
+    Business.where(id: managed_ids).distinct
   end
 
   def owns?(business)
@@ -41,18 +55,34 @@ class User < ApplicationRecord
   end
 
   def owner_or_manager_for?(business)
-    owns?(business) || %w[owner manager].include?(role_for(business))
+    %w[owner manager].include?(role_for(business))
   end
 
   def can_access_business?(business)
-    return true if owns?(business)
-
     role_assignments.where(business_id: business.id, status: "active").exists?
+  end
+
+  def whatsapp_authorized_for?(business)
+    active? && role_assignments.whatsapp_enabled.exists?(business_id: business.id)
+  end
+
+  def active?
+    status == "active"
   end
 
   private
 
   def set_default_status
     self.status = "active" if status.blank?
+  end
+
+  def default_whatsapp_business_must_be_accessible
+    return if can_access_business?(default_whatsapp_business) &&
+      whatsapp_authorized_for?(default_whatsapp_business)
+
+    errors.add(
+      :default_whatsapp_business_id,
+      "must be an accessible business authorized for WhatsApp"
+    )
   end
 end

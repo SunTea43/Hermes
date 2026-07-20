@@ -64,6 +64,7 @@ class UsersController < ApplicationController
       :email,
       :whatsapp_phone,
       :status,
+      :default_whatsapp_business_id,
       :password,
       :password_confirmation,
       :initial_business_id,
@@ -77,14 +78,22 @@ class UsersController < ApplicationController
 
   def update_user_and_roles
     updated = false
+    attributes = user_attributes
+    default_business_submitted = attributes.key?(:default_whatsapp_business_id)
+    default_business_id = attributes.delete(:default_whatsapp_business_id)
 
     ActiveRecord::Base.transaction do
-      unless @user.update(user_attributes)
+      unless @user.update(attributes)
         raise ActiveRecord::Rollback
       end
 
       if should_sync_permitted_roles?
         sync_permitted_roles
+      end
+
+      if default_business_submitted &&
+          !@user.update(default_whatsapp_business_id: default_business_id.presence)
+        raise ActiveRecord::Rollback
       end
 
       updated = true
