@@ -51,6 +51,14 @@
       <%= form.label :restrictions, "Restricciones", class: "form-label" %>
       <%= form.text_area :restrictions, class: "form-control", rows: 3 %>
     </div>
+
+    <div class="col-12">
+      <div class="form-check">
+        <%= form.check_box :whatsapp_enabled, class: "form-check-input" %>
+        <%= form.label :whatsapp_enabled, "Habilitar acceso por WhatsApp", class: "form-check-label" %>
+      </div>
+      <div class="form-text">El negocio también debe tener habilitado el canal de WhatsApp.</div>
+    </div>
   </div>
 
   <div class="mt-4 d-flex gap-2">

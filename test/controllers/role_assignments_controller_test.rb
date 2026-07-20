@@ -46,6 +46,50 @@ class RoleAssignmentsControllerTest < ActionDispatch::IntegrationTest
     assert_redirected_to user_url(@role_assignment.user)
   end
 
+  test "should enable whatsapp access and stamp authorization metadata" do
+    @role_assignment.update!(whatsapp_enabled: false, whatsapp_authorized_by: nil, whatsapp_authorized_at: nil)
+
+    patch role_assignment_url(@role_assignment), params: {
+      role_assignment: {
+        user_id: @role_assignment.user_id,
+        business_id: @role_assignment.business_id,
+        role: @role_assignment.role,
+        status: "active",
+        whatsapp_enabled: "1"
+      }
+    }
+
+    assert_redirected_to user_url(@role_assignment.user)
+    @role_assignment.reload
+    assert @role_assignment.whatsapp_enabled?
+    assert_equal users(:one), @role_assignment.whatsapp_authorized_by
+    assert @role_assignment.whatsapp_authorized_at.present?
+  end
+
+  test "should revoke whatsapp access and clear authorization metadata" do
+    @role_assignment.update!(
+      whatsapp_enabled: true,
+      whatsapp_authorized_by: users(:one),
+      whatsapp_authorized_at: Time.current
+    )
+
+    patch role_assignment_url(@role_assignment), params: {
+      role_assignment: {
+        user_id: @role_assignment.user_id,
+        business_id: @role_assignment.business_id,
+        role: @role_assignment.role,
+        status: "active",
+        whatsapp_enabled: "0"
+      }
+    }
+
+    assert_redirected_to user_url(@role_assignment.user)
+    @role_assignment.reload
+    assert_not @role_assignment.whatsapp_enabled?
+    assert_nil @role_assignment.whatsapp_authorized_by
+    assert_nil @role_assignment.whatsapp_authorized_at
+  end
+
   test "manager should not update role assignments from other businesses" do
     sign_in users(:two)
 
