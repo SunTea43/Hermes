@@ -27,6 +27,17 @@ Retorna `WhatsappBot::Skills::Base::Result` con `success?`, `data`, `errors` y `
 | `listar_stock_bajo` | Lectura | `Skills::ListLowStock` |
 | `consultar_resumen_ventas` | Lectura | `Skills::SalesReport` |
 
+## Permisos
+
+Toda ejecución valida primero que el usuario esté activo, tenga acceso a la tienda y esté autorizado para WhatsApp. Luego aplica permisos por rol:
+
+- `owner` y `manager`: todas las skills.
+- `operator`: las skills de lectura; `registrar_venta` con módulo `sales` y `registrar_compra` con módulo `purchases`.
+- `viewer`: solo las skills de lectura.
+- `registrar_pago`: solo `owner` y `manager`.
+
+`assigned_modules` usa nombres separados por coma, por ejemplo `sales,purchases`. Una revocación de usuario, tienda, rol o canal también bloquea el replay de una ejecución idempotente.
+
 ## Idempotencia
 
 Las skills de escritura guardan el resultado en `whatsapp_skill_executions` indexado por `idempotency_key` (único). Si el proveedor reenvía el mismo mensaje, se devuelve el resultado anterior sin duplicar órdenes ni pagos.

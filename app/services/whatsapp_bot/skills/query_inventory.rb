@@ -4,7 +4,7 @@ module WhatsappBot
       def self.skill_name = "consultar_inventario"
 
       def call
-        AuthorizationGateway.authorize!(user: @user, business: @business)
+        authorize_skill!
 
         name = @input[:product_name].to_s
         inventory = @business.inventories

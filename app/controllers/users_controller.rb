@@ -124,7 +124,12 @@ class UsersController < ApplicationController
       next if selected_role.blank?
 
       assignment = @user.role_assignments.find_or_initialize_by(business: business, role: selected_role)
-      assignment.assign_attributes(status: "active", ended_at: nil, assigned_at: assignment.assigned_at || Time.current)
+      assignment.assign_attributes(
+        assigned_modules: permitted_modules_for(business).join(",").presence,
+        status: "active",
+        ended_at: nil,
+        assigned_at: assignment.assigned_at || Time.current
+      )
       authorize assignment, :update?
       assignment.save!
     end
@@ -132,6 +137,12 @@ class UsersController < ApplicationController
 
   def permitted_role_for(business)
     params.dig(:user, :permitted_roles, business.id.to_s)
+  end
+
+  def permitted_modules_for(business)
+    Array(params.dig(:user, :permitted_modules, business.id.to_s))
+      .compact_blank
+      .intersection(%w[sales purchases])
   end
 
   def create_user_with_initial_role

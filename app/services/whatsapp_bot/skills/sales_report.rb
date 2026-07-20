@@ -4,7 +4,7 @@ module WhatsappBot
       def self.skill_name = "consultar_resumen_ventas"
 
       def call
-        AuthorizationGateway.authorize!(user: @user, business: @business)
+        authorize_skill!
 
         today = Date.current
         orders = @business.sales_orders.where(created_at: today.all_day)

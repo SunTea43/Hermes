@@ -70,4 +70,49 @@ class WhatsappBot::Skills::RegisterSaleTest < ActiveSupport::TestCase
     assert_not result.success?
     assert_includes result.errors, "product not found"
   end
+
+  test "viewer cannot create a sale" do
+    viewer = users(:two)
+    RoleAssignment.create!(
+      user: viewer,
+      business: @business,
+      role: "viewer",
+      status: "active",
+      assigned_at: Time.current,
+      whatsapp_enabled: true,
+      whatsapp_authorized_by: @user,
+      whatsapp_authorized_at: Time.current
+    )
+
+    assert_no_difference [ "SalesOrder.count", "WhatsappSkillExecution.count" ] do
+      assert_raises WhatsappBot::AuthorizationGateway::NotAuthorized do
+        WhatsappBot::Skills::RegisterSale.call(
+          user: viewer,
+          business: @business,
+          input: @input,
+          idempotency_key: "SM-sale-viewer:registrar_venta"
+        )
+      end
+    end
+  end
+
+  test "revoked user cannot replay an idempotent result" do
+    key = "SM-sale-revoked:registrar_venta"
+    WhatsappBot::Skills::RegisterSale.call(
+      user: @user,
+      business: @business,
+      input: @input,
+      idempotency_key: key
+    )
+    role_assignments(:one).update!(whatsapp_enabled: false)
+
+    assert_raises WhatsappBot::AuthorizationGateway::NotAuthorized do
+      WhatsappBot::Skills::RegisterSale.call(
+        user: @user,
+        business: @business,
+        input: @input,
+        idempotency_key: key
+      )
+    end
+  end
 end

@@ -5,8 +5,6 @@ module WhatsappBot
 
       def call
         with_idempotency do
-          AuthorizationGateway.authorize!(user: @user, business: @business)
-
           order = @business.sales_orders.find_by(id: @input[:order_id])
           return failure("order not found") unless order
 

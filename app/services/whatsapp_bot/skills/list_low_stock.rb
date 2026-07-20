@@ -4,7 +4,7 @@ module WhatsappBot
       def self.skill_name = "listar_stock_bajo"
 
       def call
-        AuthorizationGateway.authorize!(user: @user, business: @business)
+        authorize_skill!
 
         items = @business.inventories
                          .where("current_quantity < minimum_alert_quantity")
