@@ -28,6 +28,36 @@ class WhatsappBot::Providers::TwilioAdapterTest < ActiveSupport::TestCase
     assert_nil inbound.media
   end
 
+  test "parse_inbound accepts hash with indifferent access from Rails request params" do
+    request = FakeRequest.new(
+      params: {
+        MessageSid: "SMhash",
+        AccountSid: "AC123",
+        From: "whatsapp:+573000000001",
+        To: "whatsapp:+14155238886",
+        Body: "Hola",
+        NumMedia: "0",
+        UnexpectedField: "not persisted"
+      }.with_indifferent_access
+    )
+
+    inbound = @adapter.parse_inbound(request)
+
+    assert_equal "SMhash", inbound.provider_message_id
+    assert_equal(
+      {
+        "MessageSid" => "SMhash",
+        "AccountSid" => "AC123",
+        "From" => "whatsapp:+573000000001",
+        "To" => "whatsapp:+14155238886",
+        "Body" => "Hola",
+        "NumMedia" => "0"
+      },
+      inbound.raw_payload
+    )
+    assert_not_includes inbound.raw_payload, "UnexpectedField"
+  end
+
   test "parse_inbound includes media when present" do
     request = FakeRequest.new(
       params: ActionController::Parameters.new(
