@@ -1,6 +1,6 @@
 # WhatsApp Bot — Diseño e integración
 
-Hermes usa WhatsApp como canal principal de operación. Este documento describe la arquitectura del bot, los flujos conversacionales y la integración con Twilio.
+Hermes usa WhatsApp como canal principal de operación. Este documento describe la arquitectura del bot, los flujos conversacionales y la integración con el proveedor de mensajes (Meta Cloud API por defecto; Twilio disponible).
 
 ---
 
@@ -10,7 +10,7 @@ Hermes usa WhatsApp como canal principal de operación. Este documento describe 
 Usuario WhatsApp
       │
       ▼
-Proveedor (Twilio / futuro Meta) ──→ POST /webhooks/whatsapp[/:provider]
+Proveedor (Meta / Twilio) ──→ GET/POST /webhooks/whatsapp[/:provider]
       │
       ▼
 WebhooksController
@@ -35,7 +35,7 @@ Para cambiar de proveedor por teléfono o por tienda, ver [whatsapp-provider-swi
 
 ## Identificación de usuario
 
-El sistema identifica al usuario por su número de teléfono de WhatsApp (`params[:From]`), que se busca en `users.whatsapp_phone`.
+El sistema identifica al usuario por su número de teléfono de WhatsApp (normalizado a E.164), que se busca en `users.whatsapp_phone`.
 
 Si el número no existe en la BD, el bot responde con un mensaje de error o invita al usuario a registrarse desde el portal web.
 
@@ -136,29 +136,33 @@ Estructura del estado:
 
 ---
 
-## Configuración Twilio
+## Configuración del proveedor (Meta)
 
 ### Variables de entorno requeridas
 
 ```bash
-TWILIO_ACCOUNT_SID=ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
-TWILIO_AUTH_TOKEN=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
-TWILIO_WHATSAPP_NUMBER=whatsapp:+14155238886
+META_WHATSAPP_ACCESS_TOKEN=EAA...
+META_WHATSAPP_PHONE_NUMBER_ID=1234567890
+META_WHATSAPP_APP_SECRET=xxxxxxxx
+META_WHATSAPP_VERIFY_TOKEN=un-token-que-vos-elegis
 ```
 
-### Webhook en Twilio Console
+### Webhook en Meta Developer Console
 
-En [console.twilio.com](https://console.twilio.com), configurar el sandbox de WhatsApp:
+En [developers.facebook.com](https://developers.facebook.com), configurar el webhook de WhatsApp:
 
-- **When a message comes in:** `https://tu-dominio.com/webhooks/whatsapp`
-- **HTTP Method:** `POST`
+- **Callback URL:** `https://tu-dominio.com/webhooks/whatsapp/meta`
+- **Verify token:** el mismo valor de `META_WHATSAPP_VERIFY_TOKEN`
+- **Campo suscrito:** `messages`
 
 Para desarrollo local, usar [ngrok](https://ngrok.com):
 
 ```bash
 ngrok http 3000
-# URL pública: https://abc123.ngrok.io/webhooks/whatsapp
+# URL pública: https://abc123.ngrok.io/webhooks/whatsapp/meta
 ```
+
+Twilio sigue disponible; ver [whatsapp-provider-switching.md](./whatsapp-provider-switching.md).
 
 ### Enviar mensajes desde Rails
 
