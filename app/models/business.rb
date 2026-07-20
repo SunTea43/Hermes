@@ -7,6 +7,11 @@ class Business < ApplicationRecord
   has_many :inventories, dependent: :destroy
   has_many :role_assignments, dependent: :destroy
   has_many :whatsapp_message_audits, dependent: :nullify
+  has_many :whatsapp_business_authorizations, dependent: :destroy
+  has_many :whatsapp_authorized_users,
+    -> { where(whatsapp_business_authorizations: { enabled: true }) },
+    through: :whatsapp_business_authorizations,
+    source: :user
 
   validates :owner_id, allow_nil: true,
     numericality: { only_integer: true },

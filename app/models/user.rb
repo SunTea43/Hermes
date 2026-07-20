@@ -13,6 +13,16 @@ class User < ApplicationRecord
   has_many :payments_recorded, class_name: "Payment", foreign_key: :recorded_by_id, dependent: :nullify
   has_many :inventory_movements, dependent: :nullify
   has_many :whatsapp_message_audits, dependent: :nullify
+  has_many :whatsapp_business_authorizations, dependent: :destroy
+  has_many :authorized_whatsapp_businesses,
+    -> { where(whatsapp_business_authorizations: { enabled: true }) },
+    through: :whatsapp_business_authorizations,
+    source: :business
+  has_many :granted_whatsapp_business_authorizations,
+    class_name: "WhatsappBusinessAuthorization",
+    foreign_key: :authorized_by_id,
+    dependent: :nullify,
+    inverse_of: :authorized_by
   belongs_to :default_whatsapp_business, class_name: "Business", optional: true
 
   validates :status, inclusion: { in: STATUSES }, allow_blank: true
@@ -53,6 +63,14 @@ class User < ApplicationRecord
     role_assignments.where(business_id: business.id, status: "active").exists?
   end
 
+  def whatsapp_authorized_for?(business)
+    active? && whatsapp_business_authorizations.enabled.exists?(business_id: business.id)
+  end
+
+  def active?
+    status == "active"
+  end
+
   private
 
   def set_default_status
@@ -60,8 +78,12 @@ class User < ApplicationRecord
   end
 
   def default_whatsapp_business_must_be_accessible
-    return if can_access_business?(default_whatsapp_business)
+    return if can_access_business?(default_whatsapp_business) &&
+      whatsapp_authorized_for?(default_whatsapp_business)
 
-    errors.add(:default_whatsapp_business_id, "must be an accessible business")
+    errors.add(
+      :default_whatsapp_business_id,
+      "must be an accessible business authorized for WhatsApp"
+    )
   end
 end

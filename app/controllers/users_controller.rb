@@ -64,6 +64,7 @@ class UsersController < ApplicationController
       :email,
       :whatsapp_phone,
       :status,
+      :default_whatsapp_business_id,
       :password,
       :password_confirmation,
       :initial_business_id,
@@ -77,14 +78,26 @@ class UsersController < ApplicationController
 
   def update_user_and_roles
     updated = false
+    attributes = user_attributes
+    default_business_submitted = attributes.key?(:default_whatsapp_business_id)
+    default_business_id = attributes.delete(:default_whatsapp_business_id)
 
     ActiveRecord::Base.transaction do
-      unless @user.update(user_attributes)
+      unless @user.update(attributes)
         raise ActiveRecord::Rollback
       end
 
       if should_sync_permitted_roles?
         sync_permitted_roles
+      end
+
+      if should_sync_whatsapp_authorizations?
+        sync_whatsapp_authorizations
+      end
+
+      if default_business_submitted &&
+          !@user.update(default_whatsapp_business_id: default_business_id.presence)
+        raise ActiveRecord::Rollback
       end
 
       updated = true
@@ -123,6 +136,39 @@ class UsersController < ApplicationController
 
   def permitted_role_for(business)
     params.dig(:user, :permitted_roles, business.id.to_s)
+  end
+
+  def should_sync_whatsapp_authorizations?
+    params.fetch(:user, {}).key?(:whatsapp_business_ids)
+  end
+
+  def sync_whatsapp_authorizations
+    selected_ids = Array(params.dig(:user, :whatsapp_business_ids))
+      .compact_blank
+      .map(&:to_i)
+
+    @manageable_businesses.each do |business|
+      authorization = @user.whatsapp_business_authorizations
+        .find_or_initialize_by(business: business)
+
+      if selected_ids.include?(business.id)
+        unless @user.can_access_business?(business)
+          @user.errors.add(
+            :base,
+            "El usuario debe tener acceso a #{business.name} antes de habilitar WhatsApp."
+          )
+          raise ActiveRecord::Rollback
+        end
+
+        authorization.assign_attributes(enabled: true, authorized_by: current_user)
+        unless authorization.save
+          authorization.errors.full_messages.each { |message| @user.errors.add(:base, message) }
+          raise ActiveRecord::Rollback
+        end
+      elsif authorization.persisted?
+        authorization.update!(enabled: false, authorized_by: current_user)
+      end
+    end
   end
 
   def create_user_with_initial_role

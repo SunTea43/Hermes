@@ -72,6 +72,6 @@ class BusinessesController < ApplicationController
 
     # Only allow a list of trusted parameters through.
     def business_params
-      params.expect(business: [ :name, :description, :currency, :owner_id ])
+      params.expect(business: [ :name, :description, :currency, :owner_id, :whatsapp_enabled ])
     end
 end

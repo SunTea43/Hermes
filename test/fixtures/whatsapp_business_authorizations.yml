@@ -1,0 +1,11 @@
+one:
+  user: one
+  business: one
+  authorized_by: one
+  enabled: true
+
+two:
+  user: two
+  business: two
+  authorized_by: two
+  enabled: true

@@ -1,4 +1,6 @@
 puts "Limpiando datos previos..."
+WhatsappMessageAudit.delete_all if defined?(WhatsappMessageAudit)
+WhatsappBusinessAuthorization.delete_all if defined?(WhatsappBusinessAuthorization)
 InventoryMovement.delete_all
 Inventory.delete_all
 Payment.delete_all
@@ -34,7 +36,8 @@ tienda = Business.create!(
   name: "Tienda La Esquina",
   description: "Tienda de víveres, abarrotes y productos de primera necesidad",
   owner: owner,
-  currency: "COP"
+  currency: "COP",
+  whatsapp_enabled: true
 )
 
 RoleAssignment.create!(
@@ -44,6 +47,18 @@ RoleAssignment.create!(
   assigned_modules: "sales,purchases,inventory",
   status: "active",
   assigned_at: Time.current
+)
+
+WhatsappBusinessAuthorization.create!(
+  user: owner,
+  business: tienda,
+  authorized_by: owner
+)
+
+WhatsappBusinessAuthorization.create!(
+  user: manager,
+  business: tienda,
+  authorized_by: owner
 )
 
 puts "Creando productos..."

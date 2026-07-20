@@ -37,7 +37,12 @@ module WhatsappBot
     private
 
     def authorized_businesses
-      @user.accessible_businesses.select(&:whatsapp_enabled?)
+      return Business.none unless @user.status == "active"
+
+      @user.authorized_whatsapp_businesses
+           .where(id: @user.accessible_businesses.select(:id))
+           .whatsapp_enabled
+           .distinct
     end
   end
 end

@@ -27,6 +27,7 @@ class WhatsappBot::BusinessResolverTest < ActiveSupport::TestCase
   test "returns ambiguous when multiple enabled businesses" do
     other = businesses(:two)
     other.update!(owner: @user, whatsapp_enabled: true)
+    authorize(other)
 
     result = WhatsappBot::BusinessResolver.call(@user)
 
@@ -37,6 +38,7 @@ class WhatsappBot::BusinessResolverTest < ActiveSupport::TestCase
   test "uses default_whatsapp_business when set" do
     other = businesses(:two)
     other.update!(owner: @user, whatsapp_enabled: true)
+    authorize(other)
     @user.update!(default_whatsapp_business: other)
 
     result = WhatsappBot::BusinessResolver.call(@user)
@@ -48,11 +50,39 @@ class WhatsappBot::BusinessResolverTest < ActiveSupport::TestCase
   test "prefers session business id" do
     other = businesses(:two)
     other.update!(owner: @user, whatsapp_enabled: true)
+    authorize(other)
     @user.update!(default_whatsapp_business: @business)
 
     result = WhatsappBot::BusinessResolver.call(@user, session_business_id: other.id)
 
     assert result.ok?
     assert_equal other, result.business
+  end
+
+  test "returns not_authorized when user has access but no whatsapp authorization" do
+    whatsapp_business_authorizations(:one).update!(enabled: false)
+
+    result = WhatsappBot::BusinessResolver.call(@user)
+
+    assert_not result.ok?
+    assert_equal :not_authorized, result.error
+  end
+
+  test "returns not_authorized for an inactive user" do
+    @user.update!(status: "inactive")
+
+    result = WhatsappBot::BusinessResolver.call(@user)
+
+    assert_not result.ok?
+    assert_equal :not_authorized, result.error
+  end
+
+  private
+
+  def authorize(business)
+    WhatsappBusinessAuthorization.find_or_create_by!(user: @user, business: business) do |authorization|
+      authorization.authorized_by = @user
+      authorization.enabled = true
+    end
   end
 end
