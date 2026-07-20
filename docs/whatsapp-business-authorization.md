@@ -4,7 +4,7 @@ Antes de operar por WhatsApp se deben cumplir tres condiciones:
 
 1. La tienda tiene el canal habilitado.
 2. El usuario está activo y puede acceder a la tienda como owner o mediante un rol activo.
-3. Existe una autorización de WhatsApp habilitada para ese usuario y esa tienda.
+3. Su `RoleAssignment` activo tiene `whatsapp_enabled: true`.
 
 ## Configuración desde la aplicación
 
@@ -12,7 +12,9 @@ Antes de operar por WhatsApp se deben cumplir tres condiciones:
 - En **Usuarios → Editar → Acceso por WhatsApp**, seleccionar las tiendas que la persona puede operar.
 - Si hay más de una tienda autorizada, seleccionar una tienda predeterminada.
 
-La autorización individual se guarda en `whatsapp_business_authorizations`, incluyendo quién la concedió. Revocar el checkbox deshabilita la autorización sin eliminar su registro.
+La autorización del canal forma parte del rol usuario–tienda. El mismo `RoleAssignment` registra `whatsapp_enabled`, `whatsapp_authorized_by_id` y `whatsapp_authorized_at`. Revocar el checkbox conserva el rol y solo deshabilita el canal.
+
+Toda tienda con owner mantiene automáticamente un `RoleAssignment` activo con rol `owner`, por lo que owners y miembros siguen la misma ruta de autorización.
 
 ## Resolver la tienda operativa
 
@@ -30,10 +32,10 @@ La autorización individual se guarda en `whatsapp_business_authorizations`, inc
 
 - `user.status == "active"`
 - `business.whatsapp_enabled?`
-- `user.can_access_business?(business)` (owner o `role_assignments` activas)
-- `user.whatsapp_authorized_for?(business)`
+- un `RoleAssignment` activo para el usuario y la tienda
+- `role_assignment.whatsapp_enabled?`
 
-La autorización del canal no reemplaza el rol: ambos deben estar vigentes. Los permisos específicos de cada skill se definen en la capa de skills.
+Los permisos específicos de cada skill se derivan del rol y sus módulos en la capa de skills.
 
 ## Auditoría
 

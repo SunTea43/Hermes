@@ -7,10 +7,9 @@ class Business < ApplicationRecord
   has_many :inventories, dependent: :destroy
   has_many :role_assignments, dependent: :destroy
   has_many :whatsapp_message_audits, dependent: :nullify
-  has_many :whatsapp_business_authorizations, dependent: :destroy
   has_many :whatsapp_authorized_users,
-    -> { where(whatsapp_business_authorizations: { enabled: true }) },
-    through: :whatsapp_business_authorizations,
+    -> { where(role_assignments: { status: "active", whatsapp_enabled: true }) },
+    through: :role_assignments,
     source: :user
 
   validates :owner_id, allow_nil: true,
@@ -18,11 +17,29 @@ class Business < ApplicationRecord
     if: -> { owner_id.present? }
   validate :owner_must_exist, if: -> { owner_id.present? }
 
+  after_save :sync_owner_role_assignment!, if: :saved_change_to_owner_id?
+
   scope :whatsapp_enabled, -> { where(whatsapp_enabled: true) }
 
   private
 
   def owner_must_exist
     errors.add(:owner_id, :invalid) unless User.exists?(owner_id)
+  end
+
+  def sync_owner_role_assignment!
+    role_assignments
+      .where(role: "owner", status: "active")
+      .where.not(user_id: owner_id)
+      .update_all(status: "inactive", ended_at: Time.current, updated_at: Time.current)
+
+    return if owner.blank?
+
+    assignment = role_assignments.find_or_initialize_by(user: owner, role: "owner")
+    assignment.update!(
+      status: "active",
+      ended_at: nil,
+      assigned_at: assignment.assigned_at || Time.current
+    )
   end
 end

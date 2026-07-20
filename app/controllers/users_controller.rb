@@ -91,8 +91,8 @@ class UsersController < ApplicationController
         sync_permitted_roles
       end
 
-      if should_sync_whatsapp_authorizations?
-        sync_whatsapp_authorizations
+      if should_sync_whatsapp_role_access?
+        sync_whatsapp_role_access
       end
 
       if default_business_submitted &&
@@ -138,35 +138,42 @@ class UsersController < ApplicationController
     params.dig(:user, :permitted_roles, business.id.to_s)
   end
 
-  def should_sync_whatsapp_authorizations?
+  def should_sync_whatsapp_role_access?
     params.fetch(:user, {}).key?(:whatsapp_business_ids)
   end
 
-  def sync_whatsapp_authorizations
+  def sync_whatsapp_role_access
     selected_ids = Array(params.dig(:user, :whatsapp_business_ids))
       .compact_blank
       .map(&:to_i)
 
     @manageable_businesses.each do |business|
-      authorization = @user.whatsapp_business_authorizations
-        .find_or_initialize_by(business: business)
+      assignments = @user.role_assignments.where(
+        business: business,
+        status: "active"
+      )
 
       if selected_ids.include?(business.id)
-        unless @user.can_access_business?(business)
+        assignment = assignments.first
+        unless assignment
           @user.errors.add(
             :base,
-            "El usuario debe tener acceso a #{business.name} antes de habilitar WhatsApp."
+            "El usuario debe tener un rol activo en #{business.name} antes de habilitar WhatsApp."
           )
           raise ActiveRecord::Rollback
         end
 
-        authorization.assign_attributes(enabled: true, authorized_by: current_user)
-        unless authorization.save
-          authorization.errors.full_messages.each { |message| @user.errors.add(:base, message) }
-          raise ActiveRecord::Rollback
+        unless assignment.whatsapp_enabled?
+          assignment.update!(
+            whatsapp_enabled: true,
+            whatsapp_authorized_by: current_user,
+            whatsapp_authorized_at: Time.current
+          )
         end
-      elsif authorization.persisted?
-        authorization.update!(enabled: false, authorized_by: current_user)
+      else
+        assignments.where(whatsapp_enabled: true).find_each do |assignment|
+          assignment.update!(whatsapp_enabled: false)
+        end
       end
     end
   end

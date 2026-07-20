@@ -81,19 +81,19 @@
 
     <h2 class="h5">Acceso por WhatsApp</h2>
     <p class="text-muted">
-      Autoriza individualmente las tiendas que esta persona puede operar desde WhatsApp.
-      La tienda también debe tener habilitado el canal.
+      Habilita WhatsApp en el rol activo que esta persona tiene en cada tienda.
+      La tienda también debe tener habilitado el canal globalmente.
     </p>
 
     <%= hidden_field_tag "user[whatsapp_business_ids][]", "" %>
     <div class="row g-3">
       <% @manageable_businesses.each do |business| %>
-        <% authorization = user.whatsapp_business_authorizations.find { |item| item.business_id == business.id } %>
+        <% assignment = user.role_assignments.find { |item| item.business_id == business.id && item.status == "active" } %>
         <div class="col-md-6">
           <div class="form-check">
             <%= check_box_tag "user[whatsapp_business_ids][]",
               business.id,
-              authorization&.enabled?,
+              assignment&.whatsapp_enabled?,
               id: "user_whatsapp_business_ids_#{business.id}",
               class: "form-check-input" %>
             <%= label_tag "user_whatsapp_business_ids_#{business.id}",

@@ -133,9 +133,13 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_19_212000) do
     t.string "status"
     t.datetime "updated_at", null: false
     t.bigint "user_id", null: false
+    t.datetime "whatsapp_authorized_at"
+    t.bigint "whatsapp_authorized_by_id"
+    t.boolean "whatsapp_enabled", default: false, null: false
     t.index [ "business_id" ], name: "index_role_assignments_on_business_id"
     t.index [ "user_id", "business_id", "role" ], name: "index_role_assignments_on_user_business_role", unique: true
     t.index [ "user_id" ], name: "index_role_assignments_on_user_id"
+    t.index [ "whatsapp_authorized_by_id" ], name: "index_role_assignments_on_whatsapp_authorized_by_id"
   end
 
   create_table "sales_order_items", force: :cascade do |t|
@@ -188,19 +192,6 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_19_212000) do
     t.index [ "whatsapp_phone" ], name: "index_users_on_whatsapp_phone", unique: true
   end
 
-  create_table "whatsapp_business_authorizations", force: :cascade do |t|
-    t.bigint "authorized_by_id"
-    t.bigint "business_id", null: false
-    t.datetime "created_at", null: false
-    t.boolean "enabled", default: true, null: false
-    t.datetime "updated_at", null: false
-    t.bigint "user_id", null: false
-    t.index [ "authorized_by_id" ], name: "index_whatsapp_business_authorizations_on_authorized_by_id"
-    t.index [ "business_id" ], name: "index_whatsapp_business_authorizations_on_business_id"
-    t.index [ "user_id", "business_id" ], name: "idx_whatsapp_authorizations_on_user_and_business", unique: true
-    t.index [ "user_id" ], name: "index_whatsapp_business_authorizations_on_user_id"
-  end
-
   create_table "whatsapp_message_audits", force: :cascade do |t|
     t.text "body"
     t.bigint "business_id"
@@ -235,14 +226,12 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_19_212000) do
   add_foreign_key "purchase_orders", "users", column: "created_by_id"
   add_foreign_key "role_assignments", "businesses"
   add_foreign_key "role_assignments", "users"
+  add_foreign_key "role_assignments", "users", column: "whatsapp_authorized_by_id"
   add_foreign_key "sales_order_items", "products"
   add_foreign_key "sales_order_items", "sales_orders"
   add_foreign_key "sales_orders", "businesses"
   add_foreign_key "sales_orders", "users", column: "created_by_id"
   add_foreign_key "users", "businesses", column: "default_whatsapp_business_id"
-  add_foreign_key "whatsapp_business_authorizations", "businesses"
-  add_foreign_key "whatsapp_business_authorizations", "users"
-  add_foreign_key "whatsapp_business_authorizations", "users", column: "authorized_by_id"
   add_foreign_key "whatsapp_message_audits", "businesses"
   add_foreign_key "whatsapp_message_audits", "users"
 end

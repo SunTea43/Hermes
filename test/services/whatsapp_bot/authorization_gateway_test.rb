@@ -43,7 +43,7 @@ class WhatsappBot::AuthorizationGatewayTest < ActiveSupport::TestCase
   end
 
   test "authorize! raises when user has access but no whatsapp authorization" do
-    whatsapp_business_authorizations(:one).update!(enabled: false)
+    role_assignments(:one).update!(whatsapp_enabled: false)
 
     error = assert_raises WhatsappBot::AuthorizationGateway::NotAuthorized do
       WhatsappBot::AuthorizationGateway.authorize!(user: @user, business: @business)
@@ -59,12 +59,10 @@ class WhatsappBot::AuthorizationGatewayTest < ActiveSupport::TestCase
       business: other,
       role: "viewer",
       status: "active",
-      assigned_at: Time.current
-    )
-    WhatsappBusinessAuthorization.create!(
-      user: @user,
-      business: other,
-      authorized_by: users(:two)
+      assigned_at: Time.current,
+      whatsapp_enabled: true,
+      whatsapp_authorized_by: users(:two),
+      whatsapp_authorized_at: Time.current
     )
 
     assert WhatsappBot::AuthorizationGateway.authorize!(user: @user, business: other)

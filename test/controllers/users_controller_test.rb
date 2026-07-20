@@ -148,17 +148,15 @@ class UsersControllerTest < ActionDispatch::IntegrationTest
   test "should revoke whatsapp authorization" do
     target = users(:two)
     business = businesses(:one)
-    RoleAssignment.create!(
+    assignment = RoleAssignment.create!(
       user: target,
       business: business,
       role: "viewer",
       status: "active",
-      assigned_at: Time.current
-    )
-    authorization = WhatsappBusinessAuthorization.create!(
-      user: target,
-      business: business,
-      authorized_by: @user
+      assigned_at: Time.current,
+      whatsapp_enabled: true,
+      whatsapp_authorized_by: @user,
+      whatsapp_authorized_at: Time.current
     )
 
     patch user_url(target), params: {
@@ -174,6 +172,6 @@ class UsersControllerTest < ActionDispatch::IntegrationTest
     }
 
     assert_redirected_to user_url(target)
-    assert_not authorization.reload.enabled?
+    assert_not assignment.reload.whatsapp_enabled?
   end
 end

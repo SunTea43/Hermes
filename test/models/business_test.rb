@@ -24,4 +24,35 @@ class BusinessTest < ActiveSupport::TestCase
     assert_not business.valid?
     assert_includes business.errors[:owner_id], "is invalid"
   end
+
+  test "creates an active owner role assignment" do
+    business = Business.create!(
+      name: "Nueva tienda",
+      currency: "COP",
+      owner: users(:one)
+    )
+
+    assignment = business.role_assignments.find_by!(user: users(:one), role: "owner")
+    assert_equal "active", assignment.status
+  end
+
+  test "moves the owner role assignment when owner changes" do
+    business = Business.create!(
+      name: "Tienda transferible",
+      currency: "COP",
+      owner: users(:one)
+    )
+    previous_assignment = business.role_assignments.find_by!(
+      user: users(:one),
+      role: "owner"
+    )
+
+    business.update!(owner: users(:two))
+
+    assert_equal "inactive", previous_assignment.reload.status
+    assert_equal "active", business.role_assignments.find_by!(
+      user: users(:two),
+      role: "owner"
+    ).status
+  end
 end

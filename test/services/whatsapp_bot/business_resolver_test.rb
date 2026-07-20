@@ -60,7 +60,7 @@ class WhatsappBot::BusinessResolverTest < ActiveSupport::TestCase
   end
 
   test "returns not_authorized when user has access but no whatsapp authorization" do
-    whatsapp_business_authorizations(:one).update!(enabled: false)
+    role_assignments(:one).update!(whatsapp_enabled: false)
 
     result = WhatsappBot::BusinessResolver.call(@user)
 
@@ -80,9 +80,11 @@ class WhatsappBot::BusinessResolverTest < ActiveSupport::TestCase
   private
 
   def authorize(business)
-    WhatsappBusinessAuthorization.find_or_create_by!(user: @user, business: business) do |authorization|
-      authorization.authorized_by = @user
-      authorization.enabled = true
-    end
+    assignment = @user.role_assignments.active.find_by!(business: business)
+    assignment.update!(
+      whatsapp_enabled: true,
+      whatsapp_authorized_by: @user,
+      whatsapp_authorized_at: Time.current
+    )
   end
 end

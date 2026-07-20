@@ -1,6 +1,5 @@
 puts "Limpiando datos previos..."
 WhatsappMessageAudit.delete_all if defined?(WhatsappMessageAudit)
-WhatsappBusinessAuthorization.delete_all if defined?(WhatsappBusinessAuthorization)
 InventoryMovement.delete_all
 Inventory.delete_all
 Payment.delete_all
@@ -46,19 +45,16 @@ RoleAssignment.create!(
   role: "manager",
   assigned_modules: "sales,purchases,inventory",
   status: "active",
-  assigned_at: Time.current
+  assigned_at: Time.current,
+  whatsapp_enabled: true,
+  whatsapp_authorized_by: owner,
+  whatsapp_authorized_at: Time.current
 )
 
-WhatsappBusinessAuthorization.create!(
-  user: owner,
-  business: tienda,
-  authorized_by: owner
-)
-
-WhatsappBusinessAuthorization.create!(
-  user: manager,
-  business: tienda,
-  authorized_by: owner
+tienda.role_assignments.find_by!(user: owner, role: "owner").update!(
+  whatsapp_enabled: true,
+  whatsapp_authorized_by: owner,
+  whatsapp_authorized_at: Time.current
 )
 
 puts "Creando productos..."
