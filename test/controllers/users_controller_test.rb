@@ -64,6 +64,8 @@ class UsersControllerTest < ActionDispatch::IntegrationTest
     get edit_user_url(@user)
 
     assert_response :success
+    assert_select "h2", text: "Roles y acceso por WhatsApp"
+    assert_select "h2", text: "Acceso por WhatsApp", count: 0
     assert_select "input[name='user[whatsapp_business_ids][]']"
     assert_select "select[name='user[default_whatsapp_business_id]']"
   end

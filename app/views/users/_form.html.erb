@@ -57,32 +57,12 @@
     <% end %>
   </div>
 
-  <% if user.persisted? && user != current_user %>
-    <hr class="my-4">
-
-    <h2 class="h5">Negocios permitidos</h2>
-    <p class="text-muted">Selecciona el rol que esta persona tendrá en cada negocio que administras.</p>
-
-    <div class="row g-3">
-      <% @manageable_businesses.each do |business| %>
-        <div class="col-md-6">
-          <%= label_tag "user_permitted_roles_#{business.id}", business.name, class: "form-label" %>
-          <%= select_tag "user[permitted_roles][#{business.id}]",
-            options_for_select([ [ "Sin acceso", "" ] ] + RoleAssignment::ROLES.map { |role| [ role.titleize, role ] }, user.role_for(business)),
-            id: "user_permitted_roles_#{business.id}",
-            class: "form-select" %>
-        </div>
-      <% end %>
-    </div>
-  <% end %>
-
   <% if user.persisted? %>
     <hr class="my-4">
 
-    <h2 class="h5">Acceso por WhatsApp</h2>
+    <h2 class="h5">Roles y acceso por WhatsApp</h2>
     <p class="text-muted">
-      Habilita WhatsApp en el rol activo que esta persona tiene en cada tienda.
-      La tienda también debe tener habilitado el canal globalmente.
+      Administra el rol y habilita WhatsApp sobre la misma asignación usuario–tienda.
     </p>
 
     <%= hidden_field_tag "user[whatsapp_business_ids][]", "" %>
@@ -90,19 +70,31 @@
       <% @manageable_businesses.each do |business| %>
         <% assignment = user.role_assignments.find { |item| item.business_id == business.id && item.status == "active" } %>
         <div class="col-md-6">
-          <div class="form-check">
-            <%= check_box_tag "user[whatsapp_business_ids][]",
-              business.id,
-              assignment&.whatsapp_enabled?,
-              id: "user_whatsapp_business_ids_#{business.id}",
-              class: "form-check-input" %>
-            <%= label_tag "user_whatsapp_business_ids_#{business.id}",
-              business.name,
-              class: "form-check-label" %>
+          <div class="border rounded p-3 h-100">
+            <%= label_tag "user_permitted_roles_#{business.id}", business.name, class: "form-label fw-semibold" %>
+            <% if user != current_user %>
+              <%= select_tag "user[permitted_roles][#{business.id}]",
+                options_for_select([ [ "Sin acceso", "" ] ] + RoleAssignment::ROLES.map { |role| [ role.titleize, role ] }, user.role_for(business)),
+                id: "user_permitted_roles_#{business.id}",
+                class: "form-select" %>
+            <% else %>
+              <div class="form-control-plaintext"><%= assignment&.role&.titleize || "Sin acceso" %></div>
+            <% end %>
+
+            <div class="form-check mt-3">
+              <%= check_box_tag "user[whatsapp_business_ids][]",
+                business.id,
+                assignment&.whatsapp_enabled?,
+                id: "user_whatsapp_business_ids_#{business.id}",
+                class: "form-check-input" %>
+              <%= label_tag "user_whatsapp_business_ids_#{business.id}",
+                "Habilitar WhatsApp para este rol",
+                class: "form-check-label" %>
+            </div>
+            <% unless business.whatsapp_enabled? %>
+              <div class="form-text text-warning">El canal está deshabilitado para esta tienda.</div>
+            <% end %>
           </div>
-          <% unless business.whatsapp_enabled? %>
-            <div class="form-text text-warning">El canal está deshabilitado para esta tienda.</div>
-          <% end %>
         </div>
       <% end %>
     </div>
