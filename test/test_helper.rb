@@ -3,6 +3,7 @@ require_relative "../config/environment"
 require "rails/test_help"
 require "shoulda-context"
 require "devise"
+require_relative "support/whatsapp_test_adapter"
 
 if defined?(Rails::TestUnitReporter) && !Rails::TestUnitReporter.method_defined?(:executable)
   class Rails::TestUnitReporter
@@ -20,7 +21,10 @@ module ActiveSupport
     # Setup all fixtures in test/fixtures/*.yml for all tests in alphabetical order.
     fixtures :all
 
-    # Add more helper methods to be used by all tests here...
+    setup do
+      WhatsappBot::Providers::Resolver.register(:test, WhatsappBot::Providers::TestAdapter)
+      WhatsappBot::Providers::TestAdapter.reset!
+    end
   end
 end
 

@@ -1,0 +1,22 @@
+default: &default
+  default_provider: twilio
+  validate_signatures: true
+  # Outbound provider overrides by destination phone (E.164, without "whatsapp:" prefix).
+  # Example:
+  #   "+573001112233": meta
+  phone_overrides: {}
+  # Outbound provider overrides by business id (string keys).
+  # Example:
+  #   "12": meta
+  business_overrides: {}
+
+development:
+  <<: *default
+  validate_signatures: false
+
+test:
+  <<: *default
+  validate_signatures: false
+
+production:
+  <<: *default
