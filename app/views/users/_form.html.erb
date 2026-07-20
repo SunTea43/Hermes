@@ -65,12 +65,33 @@
 
     <div class="row g-3">
       <% @manageable_businesses.each do |business| %>
+        <% assignment = user.role_assignments.find { |item| item.business_id == business.id && item.status == "active" } %>
+        <% assigned_modules = assignment&.assigned_modules.to_s.split(",") %>
         <div class="col-md-6">
-          <%= label_tag "user_permitted_roles_#{business.id}", business.name, class: "form-label" %>
-          <%= select_tag "user[permitted_roles][#{business.id}]",
-            options_for_select([ [ "Sin acceso", "" ] ] + RoleAssignment::ROLES.map { |role| [ role.titleize, role ] }, user.role_for(business)),
-            id: "user_permitted_roles_#{business.id}",
-            class: "form-select" %>
+          <div class="border rounded p-3 h-100">
+            <%= label_tag "user_permitted_roles_#{business.id}", business.name, class: "form-label fw-semibold" %>
+            <%= select_tag "user[permitted_roles][#{business.id}]",
+              options_for_select([ [ "Sin acceso", "" ] ] + RoleAssignment::ROLES.map { |role| [ role.titleize, role ] }, user.role_for(business)),
+              id: "user_permitted_roles_#{business.id}",
+              class: "form-select" %>
+
+            <%= hidden_field_tag "user[permitted_modules][#{business.id}][]", "" %>
+            <div class="mt-2 d-flex gap-3">
+              <% { "sales" => "Ventas", "purchases" => "Compras" }.each do |module_name, label| %>
+                <div class="form-check">
+                  <%= check_box_tag "user[permitted_modules][#{business.id}][]",
+                    module_name,
+                    assigned_modules.include?(module_name),
+                    id: "user_permitted_modules_#{business.id}_#{module_name}",
+                    class: "form-check-input" %>
+                  <%= label_tag "user_permitted_modules_#{business.id}_#{module_name}",
+                    label,
+                    class: "form-check-label" %>
+                </div>
+              <% end %>
+            </div>
+            <div class="form-text">Los módulos limitan las escrituras del rol Operator.</div>
+          </div>
         </div>
       <% end %>
     </div>

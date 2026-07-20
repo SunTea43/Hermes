@@ -15,34 +15,41 @@ module WhatsappBot
     end
 
     def handle_low_stock
-      low = @business.inventories
-                     .where("current_quantity < minimum_alert_quantity")
-                     .includes(:product)
+      result = Skills::Registry.call(
+        "listar_stock_bajo",
+        user: @user,
+        business: @business,
+        input: {}
+      )
 
-      if low.empty?
+      items = result.data[:items] || []
+      if items.empty?
         reply("✅ Todo el stock está sobre los mínimos.")
       else
-        lines = low.map { |i| "- #{i.product.name}: #{i.current_quantity}#{i.product.unit_measure} (mín. #{i.minimum_alert_quantity})" }
+        lines = items.map { |i|
+          "- #{i[:product_name]}: #{i[:current_quantity]}#{i[:unit_measure]} (mín. #{i[:minimum_alert_quantity]})"
+        }
         reply("⚠️ Productos bajo mínimo:\n#{lines.join("\n")}")
       end
     end
 
     def handle_product_query
-      # Extraer nombre de producto del mensaje
       name = extract_product_name
-      inventory = @business.inventories
-                           .joins(:product)
-                           .where("lower(products.name) LIKE ?", "%#{name.downcase}%")
-                           .includes(:product)
-                           .first
+      result = Skills::Registry.call(
+        "consultar_inventario",
+        user: @user,
+        business: @business,
+        input: { product_name: name }
+      )
 
-      unless inventory
+      unless result.success?
         reply("No encontré \"#{name}\" en tu inventario.")
         return
       end
 
-      status = inventory.current_quantity < inventory.minimum_alert_quantity ? "⚠️" : "✅"
-      reply("#{inventory.product.name}: #{inventory.current_quantity}#{inventory.product.unit_measure} #{status} (mín. #{inventory.minimum_alert_quantity})")
+      data = result.data
+      status = data[:low] ? "⚠️" : "✅"
+      reply("#{data[:product_name]}: #{data[:current_quantity]}#{data[:unit_measure]} #{status} (mín. #{data[:minimum_alert_quantity]})")
     end
 
     def extract_product_name

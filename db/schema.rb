@@ -211,6 +211,21 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_19_212000) do
     t.index [ "user_id" ], name: "index_whatsapp_message_audits_on_user_id"
   end
 
+  create_table "whatsapp_skill_executions", force: :cascade do |t|
+    t.bigint "business_id", null: false
+    t.datetime "created_at", null: false
+    t.string "idempotency_key", null: false
+    t.string "input_hash", null: false
+    t.jsonb "result_payload", default: {}, null: false
+    t.string "skill_name", null: false
+    t.datetime "updated_at", null: false
+    t.bigint "user_id", null: false
+    t.index [ "business_id", "skill_name" ], name: "index_whatsapp_skill_executions_on_business_id_and_skill_name"
+    t.index [ "business_id" ], name: "index_whatsapp_skill_executions_on_business_id"
+    t.index [ "idempotency_key" ], name: "index_whatsapp_skill_executions_on_idempotency_key", unique: true
+    t.index [ "user_id" ], name: "index_whatsapp_skill_executions_on_user_id"
+  end
+
   add_foreign_key "businesses", "users", column: "owner_id"
   add_foreign_key "inventories", "businesses"
   add_foreign_key "inventories", "products"
@@ -234,4 +249,6 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_19_212000) do
   add_foreign_key "users", "businesses", column: "default_whatsapp_business_id"
   add_foreign_key "whatsapp_message_audits", "businesses"
   add_foreign_key "whatsapp_message_audits", "users"
+  add_foreign_key "whatsapp_skill_executions", "businesses"
+  add_foreign_key "whatsapp_skill_executions", "users"
 end

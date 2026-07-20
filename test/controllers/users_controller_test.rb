@@ -104,6 +104,10 @@ class UsersControllerTest < ActionDispatch::IntegrationTest
         permitted_roles: {
           businesses(:one).id.to_s => "viewer",
           businesses(:two).id.to_s => "operator"
+        },
+        permitted_modules: {
+          businesses(:one).id.to_s => [ "sales" ],
+          businesses(:two).id.to_s => [ "purchases" ]
         }
       }
     }
@@ -111,6 +115,11 @@ class UsersControllerTest < ActionDispatch::IntegrationTest
     assert_redirected_to user_url(users(:two))
     assert_equal "viewer", users(:two).role_for(businesses(:one))
     assert_equal "operator", users(:two).role_for(businesses(:two))
+    assignment = users(:two).role_assignments.find_by!(
+      business: businesses(:two),
+      role: "operator"
+    )
+    assert_equal "purchases", assignment.assigned_modules
   end
 
   test "should set default whatsapp business without touching access" do

@@ -42,4 +42,31 @@ class UserTest < ActiveSupport::TestCase
     role_assignments(:one).update!(whatsapp_enabled: false)
     assert_not user.whatsapp_authorized_for?(business)
   end
+
+  test "whatsapp_phone must be unique when present" do
+    user = User.new(
+      email: "duplicate-phone@example.com",
+      password: "password123",
+      whatsapp_phone: users(:one).whatsapp_phone
+    )
+
+    assert_not user.valid?
+    assert_includes user.errors[:whatsapp_phone], "ya está en uso por otro usuario"
+  end
+
+  test "blank whatsapp_phone is allowed for multiple users" do
+    first = User.create!(
+      email: "blank-phone-one@example.com",
+      password: "password123",
+      whatsapp_phone: ""
+    )
+    second = User.new(
+      email: "blank-phone-two@example.com",
+      password: "password123",
+      whatsapp_phone: "   "
+    )
+
+    assert_nil first.whatsapp_phone
+    assert second.valid?
+  end
 end

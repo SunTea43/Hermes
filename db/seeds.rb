@@ -1,4 +1,5 @@
 puts "Limpiando datos previos..."
+WhatsappSkillExecution.delete_all if defined?(WhatsappSkillExecution)
 WhatsappMessageAudit.delete_all if defined?(WhatsappMessageAudit)
 InventoryMovement.delete_all
 Inventory.delete_all
@@ -13,22 +14,51 @@ RoleAssignment.delete_all
 Business.delete_all
 User.delete_all
 
-puts "Creando usuarios..."
-owner = User.create!(
-  name: "Santiago (Owner)",
-  email: "owner@hermes.test",
-  password: "password123",
-  whatsapp_phone: "+573001000001",
-  status: "active"
-)
+puts "Creando un usuario por cada rol (#{RoleAssignment::ROLES.join(', ')})..."
 
-manager = User.create!(
-  name: "Carolina (Manager)",
-  email: "manager@hermes.test",
-  password: "password123",
-  whatsapp_phone: "+573001000002",
-  status: "active"
-)
+role_seed_profiles = {
+  "owner" => {
+    name: "Santiago (Owner)",
+    email: "owner@hermes.test",
+    whatsapp_phone: "+573001000001",
+    assigned_modules: nil
+  },
+  "manager" => {
+    name: "Carolina (Manager)",
+    email: "manager@hermes.test",
+    whatsapp_phone: "+573001000002",
+    assigned_modules: "sales,purchases,inventory"
+  },
+  "operator" => {
+    name: "Luis (Operator)",
+    email: "operator@hermes.test",
+    whatsapp_phone: "+573001000003",
+    assigned_modules: "sales,purchases"
+  },
+  "viewer" => {
+    name: "Ana (Viewer)",
+    email: "viewer@hermes.test",
+    whatsapp_phone: "+573001000004",
+    assigned_modules: nil
+  }
+}
+
+missing_roles = RoleAssignment::ROLES - role_seed_profiles.keys
+raise "Faltan perfiles de seed para roles: #{missing_roles.join(', ')}" if missing_roles.any?
+
+users_by_role = RoleAssignment::ROLES.index_with do |role|
+  profile = role_seed_profiles.fetch(role)
+  User.create!(
+    name: profile[:name],
+    email: profile[:email],
+    password: "password123",
+    whatsapp_phone: profile[:whatsapp_phone],
+    status: "active"
+  )
+end
+
+owner = users_by_role.fetch("owner")
+manager = users_by_role.fetch("manager")
 
 puts "Creando negocio..."
 tienda = Business.create!(
@@ -39,23 +69,29 @@ tienda = Business.create!(
   whatsapp_enabled: true
 )
 
-RoleAssignment.create!(
-  user: manager,
-  business: tienda,
-  role: "manager",
-  assigned_modules: "sales,purchases,inventory",
-  status: "active",
-  assigned_at: Time.current,
-  whatsapp_enabled: true,
-  whatsapp_authorized_by: owner,
-  whatsapp_authorized_at: Time.current
-)
+RoleAssignment::ROLES.each do |role|
+  user = users_by_role.fetch(role)
+  profile = role_seed_profiles.fetch(role)
 
-tienda.role_assignments.find_by!(user: owner, role: "owner").update!(
-  whatsapp_enabled: true,
-  whatsapp_authorized_by: owner,
-  whatsapp_authorized_at: Time.current
-)
+  assignment = if role == "owner"
+    tienda.role_assignments.find_by!(user: user, role: "owner")
+  else
+    RoleAssignment.create!(
+      user: user,
+      business: tienda,
+      role: role,
+      assigned_modules: profile[:assigned_modules],
+      status: "active",
+      assigned_at: Time.current
+    )
+  end
+
+  assignment.update!(
+    whatsapp_enabled: true,
+    whatsapp_authorized_by: owner,
+    whatsapp_authorized_at: Time.current
+  )
+end
 
 puts "Creando productos..."
 productos = [
@@ -145,4 +181,9 @@ puts "   Productos: #{Product.count}"
 puts "   Inventario:#{Inventory.count} items"
 puts "   Ventas:    #{SalesOrder.count}"
 puts "   Compras:   #{PurchaseOrder.count}"
-puts "\n📧 Login: owner@hermes.test / password123"
+puts "\n📧 Un usuario por rol (password: password123):"
+RoleAssignment::ROLES.each do |role|
+  profile = role_seed_profiles.fetch(role)
+  modules = profile[:assigned_modules].presence || "-"
+  puts "   #{role.ljust(8)} #{profile[:email].ljust(22)} #{profile[:whatsapp_phone]}  módulos: #{modules}"
+end
