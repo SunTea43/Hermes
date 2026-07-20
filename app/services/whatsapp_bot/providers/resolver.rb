@@ -3,7 +3,10 @@ module WhatsappBot
     class Resolver
       class UnknownProviderError < StandardError; end
 
-      @adapters = { twilio: TwilioAdapter }
+      @adapters = {
+        twilio: TwilioAdapter,
+        meta: MetaAdapter
+      }
 
       class << self
         def adapters

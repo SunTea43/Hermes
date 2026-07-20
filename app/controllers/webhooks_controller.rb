@@ -6,12 +6,21 @@ class WebhooksController < ApplicationController
   def whatsapp
     adapter = WhatsappBot::Providers::Resolver.for_inbound(params[:provider])
 
+    if request.get? || request.head?
+      return verify_whatsapp_subscription(adapter)
+    end
+
     unless adapter.valid_signature?(request)
       head :forbidden
       return
     end
 
     inbound = adapter.parse_inbound(request)
+    if inbound.nil?
+      head :ok
+      return
+    end
+
     user = User.find_by(whatsapp_phone: inbound.from)
     audit = create_audit(inbound, user)
 
@@ -25,6 +34,20 @@ class WebhooksController < ApplicationController
   end
 
   private
+
+  def verify_whatsapp_subscription(adapter)
+    unless adapter.respond_to?(:verify_subscription)
+      head :method_not_allowed
+      return
+    end
+
+    challenge = adapter.verify_subscription(request)
+    if challenge
+      render plain: challenge, status: :ok
+    else
+      head :forbidden
+    end
+  end
 
   def create_audit(inbound, user)
     WhatsappMessageAudit.create!(
