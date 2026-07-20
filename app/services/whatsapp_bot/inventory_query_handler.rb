@@ -24,12 +24,9 @@ module WhatsappBot
 
       items = result.data[:items] || []
       if items.empty?
-        reply("✅ Todo el stock está sobre los mínimos.")
+        reply(ResponseRenderer.low_stock_ok)
       else
-        lines = items.map { |i|
-          "- #{i[:product_name]}: #{i[:current_quantity]}#{i[:unit_measure]} (mín. #{i[:minimum_alert_quantity]})"
-        }
-        reply("⚠️ Productos bajo mínimo:\n#{lines.join("\n")}")
+        reply(ResponseRenderer.low_stock_list(items))
       end
     end
 
@@ -43,13 +40,13 @@ module WhatsappBot
       )
 
       unless result.success?
-        reply("No encontré \"#{name}\" en tu inventario.")
+        reply(ResponseRenderer.inventory_not_found(name))
         return
       end
 
-      data = result.data
-      status = data[:low] ? "⚠️" : "✅"
-      reply("#{data[:product_name]}: #{data[:current_quantity]}#{data[:unit_measure]} #{status} (mín. #{data[:minimum_alert_quantity]})")
+      reply(ResponseRenderer.inventory_item(**result.data.slice(
+        :product_name, :current_quantity, :unit_measure, :minimum_alert_quantity, :low
+      ).symbolize_keys))
     end
 
     def extract_product_name

@@ -14,28 +14,34 @@ module WhatsappBot
     def handle_initial_message
       parsed = parse_purchase_message
       unless parsed
-        reply("No entendí. Ejemplo: \"Recibí de Juanito: arroz 50kg a $2,000\".")
+        reply('No entendí. Ejemplo: "Recibí de Juanito: arroz 50kg a $2,000".')
         return
       end
 
       product = find_product(parsed[:product_name])
       unless product
-        reply("No encontré el producto \"#{parsed[:product_name]}\".")
+        reply(ResponseRenderer.product_not_found(parsed[:product_name], in_inventory: false))
         return
       end
 
       draft = {
-        product_id:    product.id,
-        product_name:  product.name,
+        product_id: product.id,
+        product_name: product.name,
         supplier_name: parsed[:supplier_name],
-        quantity:      parsed[:quantity],
-        unit_price:    parsed[:unit_price],
-        unit_measure:  product.unit_measure
+        quantity: parsed[:quantity],
+        unit_price: parsed[:unit_price],
+        unit_measure: product.unit_measure
       }
 
       total = draft[:quantity] * draft[:unit_price]
       @session.set(intent: :purchase, step: :awaiting_confirmation, draft: draft)
-      reply("Compra a #{draft[:supplier_name]}:\n- #{draft[:product_name]} #{draft[:quantity]}#{draft[:unit_measure]}: $#{total}\nTotal: $#{total}. ¿Confirmo?")
+      reply(ResponseRenderer.purchase_confirm(
+        supplier_name: draft[:supplier_name],
+        product_name: draft[:product_name],
+        quantity: draft[:quantity],
+        unit_measure: draft[:unit_measure],
+        total: total
+      ))
     end
 
     def handle_confirmation_step
@@ -43,12 +49,12 @@ module WhatsappBot
 
       if negative?
         @session.clear
-        reply("Compra cancelada.")
+        reply(ResponseRenderer.cancelled(:purchase))
         return
       end
 
       unless affirmative?
-        reply("Responde 'sí' para confirmar o 'no' para cancelar.")
+        reply(ResponseRenderer.confirm_yes_no)
         return
       end
 
@@ -62,13 +68,13 @@ module WhatsappBot
       @session.clear
 
       unless result.success?
-        reply("No pude registrar la compra: #{result.errors.join(', ')}")
+        reply(ResponseRenderer.skill_error("registrar la compra", result.errors))
         return
       end
 
-      data = result.data
-      stock_msg = data[:current_quantity] ? " Stock #{data[:product_name]}: #{data[:current_quantity]}#{data[:unit_measure]}" : ""
-      reply("✅ #{data[:reference_number]} registrada.#{stock_msg}")
+      reply(ResponseRenderer.purchase_recorded(**result.data.slice(
+        :reference_number, :product_name, :current_quantity, :unit_measure
+      ).symbolize_keys))
     end
 
     def parse_purchase_message
@@ -78,9 +84,9 @@ module WhatsappBot
       supplier, product_raw, qty_str, price_str = match.captures
       {
         supplier_name: supplier.strip,
-        product_name:  product_raw.strip,
-        quantity:      qty_str.tr(",", ".").to_f,
-        unit_price:    price_str.tr(",", ".").to_f
+        product_name: product_raw.strip,
+        quantity: qty_str.tr(",", ".").to_f,
+        unit_price: price_str.tr(",", ".").to_f
       }
     end
 

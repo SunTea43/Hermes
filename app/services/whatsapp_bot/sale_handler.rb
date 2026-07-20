@@ -1,9 +1,5 @@
 module WhatsappBot
   class SaleHandler < BaseHandler
-    # Paso 1: parsear mensaje inicial → pedir cliente
-    # Paso 2: recibir cliente → pedir condición de pago
-    # Paso 3: recibir condición → confirmar y guardar
-
     def call
       case @state[:step]
       when :awaiting_customer
@@ -22,13 +18,13 @@ module WhatsappBot
     def handle_initial_message
       parsed = parse_sale_message
       unless parsed
-        reply("No entendí. Ejemplo: \"Vendí 10kg de arroz\" o \"Fiado a María 5kg arroz\".")
+        reply(ResponseRenderer.sale_parse_error)
         return
       end
 
       product = find_product(parsed[:product_name])
       unless product
-        reply("No encontré el producto \"#{parsed[:product_name]}\" en tu inventario.")
+        reply(ResponseRenderer.product_not_found(parsed[:product_name]))
         return
       end
 
@@ -36,23 +32,29 @@ module WhatsappBot
       unit_price = price&.unit_price || 0
 
       draft = {
-        product_id:   product.id,
+        product_id: product.id,
         product_name: product.name,
-        quantity:     parsed[:quantity],
-        unit_price:   unit_price,
+        quantity: parsed[:quantity],
+        unit_price: unit_price,
         unit_measure: product.unit_measure
       }
 
       total = draft[:quantity] * draft[:unit_price]
       @session.set(intent: :sale, step: :awaiting_customer, draft: draft)
-      reply("#{draft[:quantity]}#{draft[:unit_measure]} de #{draft[:product_name]} × $#{draft[:unit_price]} = $#{total}. ¿A quién? (nombre o 'venta general')")
+      reply(ResponseRenderer.sale_ask_customer(
+        quantity: draft[:quantity],
+        unit_measure: draft[:unit_measure],
+        product_name: draft[:product_name],
+        unit_price: draft[:unit_price],
+        total: total
+      ))
     end
 
     def handle_customer_step
       draft = @state[:draft]
       draft[:customer_name] = @message.strip
       @session.set(intent: :sale, step: :awaiting_payment_condition, draft: draft)
-      reply("Venta a #{draft[:customer_name]}. ¿Contado o crédito?")
+      reply(ResponseRenderer.sale_ask_payment_condition(customer_name: draft[:customer_name]))
     end
 
     def handle_payment_condition_step
@@ -60,16 +62,21 @@ module WhatsappBot
       condition = @message.strip.downcase
 
       unless condition.match?(/contado|crédito|credito/)
-        reply("Responde 'contado' o 'crédito'.")
+        reply(ResponseRenderer.ask_cash_or_credit)
         return
       end
 
       draft[:payment_condition] = condition.match?(/cr/) ? "credit" : "cash"
       total = draft[:quantity] * draft[:unit_price]
       @session.set(intent: :sale, step: :awaiting_confirmation, draft: draft)
-
-      cond_label = draft[:payment_condition] == "credit" ? "crédito" : "contado"
-      reply("Venta a #{draft[:customer_name]}: #{draft[:quantity]}#{draft[:unit_measure]} #{draft[:product_name]} = $#{total} (#{cond_label}). ¿Confirmo? (sí/no)")
+      reply(ResponseRenderer.sale_confirm(
+        customer_name: draft[:customer_name],
+        quantity: draft[:quantity],
+        unit_measure: draft[:unit_measure],
+        product_name: draft[:product_name],
+        total: total,
+        payment_condition: draft[:payment_condition]
+      ))
     end
 
     def handle_confirmation_step
@@ -77,12 +84,12 @@ module WhatsappBot
 
       if negative?
         @session.clear
-        reply("Venta cancelada.")
+        reply(ResponseRenderer.cancelled(:sale))
         return
       end
 
       unless affirmative?
-        reply("Responde 'sí' para confirmar o 'no' para cancelar.")
+        reply(ResponseRenderer.confirm_yes_no)
         return
       end
 
@@ -96,13 +103,13 @@ module WhatsappBot
       @session.clear
 
       unless result.success?
-        reply("No pude registrar la venta: #{result.errors.join(', ')}")
+        reply(ResponseRenderer.skill_error("registrar la venta", result.errors))
         return
       end
 
-      data = result.data
-      stock_msg = data[:current_quantity] ? " Stock #{data[:product_name]}: #{data[:current_quantity]}#{data[:unit_measure]}" : ""
-      reply("✅ #{data[:reference_number]} registrada.#{stock_msg}")
+      reply(ResponseRenderer.sale_recorded(**result.data.slice(
+        :reference_number, :product_name, :current_quantity, :unit_measure
+      ).symbolize_keys))
     end
 
     def parse_sale_message
