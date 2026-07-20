@@ -27,8 +27,12 @@ class User < ApplicationRecord
   belongs_to :default_whatsapp_business, class_name: "Business", optional: true
 
   validates :status, inclusion: { in: STATUSES }, allow_blank: true
+  validates :whatsapp_phone,
+    uniqueness: { message: "ya está en uso por otro usuario" },
+    allow_blank: true
   validate :default_whatsapp_business_must_be_accessible, if: -> { default_whatsapp_business_id.present? }
 
+  before_validation :normalize_whatsapp_phone
   before_validation :set_default_status
 
   def role_for(business)
@@ -71,6 +75,10 @@ class User < ApplicationRecord
   end
 
   private
+
+  def normalize_whatsapp_phone
+    self.whatsapp_phone = whatsapp_phone.presence
+  end
 
   def set_default_status
     self.status = "active" if status.blank?
