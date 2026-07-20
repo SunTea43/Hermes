@@ -64,10 +64,8 @@ class UsersControllerTest < ActionDispatch::IntegrationTest
     get edit_user_url(@user)
 
     assert_response :success
-    assert_select "h2", text: "Roles y acceso por WhatsApp"
-    assert_select "h2", text: "Acceso por WhatsApp", count: 0
-    assert_select "input[name='user[whatsapp_business_ids][]']"
     assert_select "select[name='user[default_whatsapp_business_id]']"
+    assert_select "input[name='user[whatsapp_business_ids][]']", count: 0
   end
 
   test "should update user without changing password" do
@@ -115,9 +113,19 @@ class UsersControllerTest < ActionDispatch::IntegrationTest
     assert_equal "operator", users(:two).role_for(businesses(:two))
   end
 
-  test "should authorize another user for whatsapp and set default business" do
+  test "should set default whatsapp business without touching access" do
     target = users(:two)
     business = businesses(:one)
+    RoleAssignment.create!(
+      user: target,
+      business: business,
+      role: "viewer",
+      status: "active",
+      assigned_at: Time.current,
+      whatsapp_enabled: true,
+      whatsapp_authorized_by: @user,
+      whatsapp_authorized_at: Time.current
+    )
     RoleAssignment.create!(
       user: @user,
       business: businesses(:two),
@@ -134,46 +142,11 @@ class UsersControllerTest < ActionDispatch::IntegrationTest
         status: target.status,
         password: "",
         password_confirmation: "",
-        default_whatsapp_business_id: business.id,
-        whatsapp_business_ids: [ business.id ],
-        permitted_roles: {
-          business.id.to_s => "viewer"
-        }
+        default_whatsapp_business_id: business.id
       }
     }
 
     assert_redirected_to user_url(target)
-    assert target.reload.whatsapp_authorized_for?(business)
-    assert_equal business, target.default_whatsapp_business
-  end
-
-  test "should revoke whatsapp authorization" do
-    target = users(:two)
-    business = businesses(:one)
-    assignment = RoleAssignment.create!(
-      user: target,
-      business: business,
-      role: "viewer",
-      status: "active",
-      assigned_at: Time.current,
-      whatsapp_enabled: true,
-      whatsapp_authorized_by: @user,
-      whatsapp_authorized_at: Time.current
-    )
-
-    patch user_url(target), params: {
-      user: {
-        name: target.name,
-        email: target.email,
-        whatsapp_phone: target.whatsapp_phone,
-        status: target.status,
-        password: "",
-        password_confirmation: "",
-        whatsapp_business_ids: [ "" ]
-      }
-    }
-
-    assert_redirected_to user_url(target)
-    assert_not assignment.reload.whatsapp_enabled?
+    assert_equal business, target.reload.default_whatsapp_business
   end
 end

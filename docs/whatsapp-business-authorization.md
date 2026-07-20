@@ -9,10 +9,10 @@ Antes de operar por WhatsApp se deben cumplir tres condiciones:
 ## Configuración desde la aplicación
 
 - En **Negocios → Editar**, activar “Habilitar operaciones por WhatsApp”.
-- En **Usuarios → Editar → Acceso por WhatsApp**, seleccionar las tiendas que la persona puede operar.
-- Si hay más de una tienda autorizada, seleccionar una tienda predeterminada.
+- En **Roles → Editar** (o al asignar un rol), marcar “Habilitar acceso por WhatsApp”. El acceso se administra sobre el rol usuario–tienda, no sobre el usuario.
+- En **Usuarios → Editar → Preferencia de WhatsApp**, si la persona tiene más de una tienda autorizada, elegir la tienda predeterminada.
 
-La autorización del canal forma parte del rol usuario–tienda. El mismo `RoleAssignment` registra `whatsapp_enabled`, `whatsapp_authorized_by_id` y `whatsapp_authorized_at`. Revocar el checkbox conserva el rol y solo deshabilita el canal.
+La autorización del canal forma parte del rol usuario–tienda. El mismo `RoleAssignment` registra `whatsapp_enabled`, `whatsapp_authorized_by_id` y `whatsapp_authorized_at`; el controlador de roles sella estos campos al habilitar y los limpia al revocar. Revocar el checkbox conserva el rol y solo deshabilita el canal.
 
 Toda tienda con owner mantiene automáticamente un `RoleAssignment` activo con rol `owner`, por lo que owners y miembros siguen la misma ruta de autorización.
 

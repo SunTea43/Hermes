@@ -91,10 +91,6 @@ class UsersController < ApplicationController
         sync_permitted_roles
       end
 
-      if should_sync_whatsapp_role_access?
-        sync_whatsapp_role_access
-      end
-
       if default_business_submitted &&
           !@user.update(default_whatsapp_business_id: default_business_id.presence)
         raise ActiveRecord::Rollback
@@ -136,46 +132,6 @@ class UsersController < ApplicationController
 
   def permitted_role_for(business)
     params.dig(:user, :permitted_roles, business.id.to_s)
-  end
-
-  def should_sync_whatsapp_role_access?
-    params.fetch(:user, {}).key?(:whatsapp_business_ids)
-  end
-
-  def sync_whatsapp_role_access
-    selected_ids = Array(params.dig(:user, :whatsapp_business_ids))
-      .compact_blank
-      .map(&:to_i)
-
-    @manageable_businesses.each do |business|
-      assignments = @user.role_assignments.where(
-        business: business,
-        status: "active"
-      )
-
-      if selected_ids.include?(business.id)
-        assignment = assignments.first
-        unless assignment
-          @user.errors.add(
-            :base,
-            "El usuario debe tener un rol activo en #{business.name} antes de habilitar WhatsApp."
-          )
-          raise ActiveRecord::Rollback
-        end
-
-        unless assignment.whatsapp_enabled?
-          assignment.update!(
-            whatsapp_enabled: true,
-            whatsapp_authorized_by: current_user,
-            whatsapp_authorized_at: Time.current
-          )
-        end
-      else
-        assignments.where(whatsapp_enabled: true).find_each do |assignment|
-          assignment.update!(whatsapp_enabled: false)
-        end
-      end
-    end
   end
 
   def create_user_with_initial_role
