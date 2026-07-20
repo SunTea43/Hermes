@@ -16,4 +16,17 @@ class WhatsappBot::Messages::InboundMessageTest < ActiveSupport::TestCase
     assert_equal "+14155238886", message.to
     assert_equal "hola", message.body
   end
+
+  test "normalizes bare digit phones to E.164 with plus" do
+    message = WhatsappBot::Messages::InboundMessage.new(
+      provider: "meta",
+      provider_message_id: "wamid.1",
+      from: "573000000001",
+      to: "15551234567",
+      body: "hola"
+    )
+
+    assert_equal "+573000000001", message.from
+    assert_equal "+15551234567", message.to
+  end
 end

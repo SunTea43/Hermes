@@ -24,7 +24,10 @@ module WhatsappBot
       end
 
       def self.normalize_phone(value)
-        value.to_s.delete_prefix("whatsapp:").strip
+        phone = value.to_s.delete_prefix("whatsapp:").strip
+        return phone if phone.blank? || phone.start_with?("+")
+
+        phone.match?(/\A\d+\z/) ? "+#{phone}" : phone
       end
     end
   end

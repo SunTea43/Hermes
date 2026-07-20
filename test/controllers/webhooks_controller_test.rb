@@ -82,11 +82,99 @@ class WebhooksControllerTest < ActionDispatch::IntegrationTest
 
   test "unknown provider raises" do
     assert_raises WhatsappBot::Providers::Resolver::UnknownProviderError do
-      post whatsapp_provider_webhook_path(provider: "meta"), params: {
+      post whatsapp_provider_webhook_path(provider: "unknown_bsp"), params: {
         From: "whatsapp:+573000000001",
         Body: "hola"
       }
     end
+  end
+
+  test "meta verification challenge returns hub challenge" do
+    ENV["META_WHATSAPP_VERIFY_TOKEN"] = "hermes-verify"
+
+    get whatsapp_provider_webhook_path(provider: "meta"), params: {
+      "hub.mode" => "subscribe",
+      "hub.verify_token" => "hermes-verify",
+      "hub.challenge" => "challenge-token"
+    }
+
+    assert_response :ok
+    assert_equal "challenge-token", response.body
+  ensure
+    ENV.delete("META_WHATSAPP_VERIFY_TOKEN")
+  end
+
+  test "meta status-only webhook returns ok without audit" do
+    payload = {
+      object: "whatsapp_business_account",
+      entry: [
+        {
+          changes: [
+            {
+              value: {
+                statuses: [ { id: "wamid.STATUS", status: "delivered" } ]
+              }
+            }
+          ]
+        }
+      ]
+    }
+
+    assert_no_difference "WhatsappMessageAudit.count" do
+      post whatsapp_provider_webhook_path(provider: "meta"),
+        params: payload,
+        as: :json
+    end
+
+    assert_response :ok
+  end
+
+  test "meta inbound text message dispatches for known user" do
+    user = users(:one)
+    replies_before = WhatsappBot::Providers::TestAdapter.deliveries.size
+    payload = {
+      object: "whatsapp_business_account",
+      entry: [
+        {
+          changes: [
+            {
+              value: {
+                metadata: {
+                  display_phone_number: "15551234567",
+                  phone_number_id: "123"
+                },
+                messages: [
+                  {
+                    from: user.whatsapp_phone.delete_prefix("+"),
+                    id: "wamid.KNOWN",
+                    timestamp: "1710000000",
+                    type: "text",
+                    text: { body: "ayuda" }
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
+
+    WhatsappBot::Config.with_settings(
+      "default_provider" => "test",
+      "phone_overrides" => {},
+      "business_overrides" => {}
+    ) do
+      post whatsapp_provider_webhook_path(provider: "meta"),
+        params: payload,
+        as: :json
+    end
+
+    assert_response :ok
+    assert WhatsappBot::Providers::TestAdapter.deliveries.size > replies_before
+    audit = WhatsappMessageAudit.last
+    assert_equal "dispatched", audit.status
+    assert_equal "meta", audit.provider
+    assert_equal "wamid.KNOWN", audit.provider_message_id
   end
 
   test "invalid signature returns forbidden" do
