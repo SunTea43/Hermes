@@ -1,10 +1,11 @@
 module WhatsappBot
   class ResponseRenderer
     MENU = <<~MSG.strip
-      No entendí ese mensaje. Podés escribirme:
+      No entendí ese mensaje. Puedes escribirme:
 
       📦 *Ventas*
       • "Vendí 10kg de arroz"
+      • "Vendí 10kg arroz y 5lt aceite"
       • "Fiado a María 5kg arroz"
 
       🛒 *Compras*
@@ -26,26 +27,57 @@ module WhatsappBot
         MENU
       end
 
-      def sale_ask_customer(quantity:, unit_measure:, product_name:, unit_price:, total:)
-        "#{format_qty(quantity)}#{unit_measure} de #{product_name} × $#{format_money(unit_price)} = $#{format_money(total)}. ¿A quién? (nombre o 'venta general')"
+      def sale_ask_customer(quantity: nil, unit_measure: nil, product_name: nil, unit_price: nil, total: nil, items: nil)
+        if items.present?
+          "#{format_cart_lines(items)}\nTotal: $#{format_money(cart_total(items, total))}. ¿A quién? (nombre o 'venta general')"
+        else
+          "#{format_qty(quantity)}#{unit_measure} de #{product_name} × $#{format_money(unit_price)} = $#{format_money(total)}. ¿A quién? (nombre o 'venta general')"
+        end
       end
 
       def sale_ask_payment_condition(customer_name:)
         "Venta a #{customer_name}. ¿Contado o crédito?"
       end
 
-      def sale_confirm(customer_name:, quantity:, unit_measure:, product_name:, total:, payment_condition:)
-        cond_label = payment_condition == "credit" ? "crédito" : "contado"
-        "Venta a #{customer_name}: #{format_qty(quantity)}#{unit_measure} #{product_name} = $#{format_money(total)} (#{cond_label}). ¿Confirmo? (sí/no)"
+      def sale_cart(items:, total: nil)
+        <<~MSG.strip
+          #{format_cart_lines(items)}
+          Total: $#{format_money(cart_total(items, total))}
+          Agrega otro producto o escribe *listo* para continuar.
+        MSG
       end
 
-      def sale_recorded(reference_number:, product_name: nil, current_quantity: nil, unit_measure: nil)
-        stock = stock_suffix(product_name, current_quantity, unit_measure)
-        "✅ #{reference_number} registrada.#{stock}"
+      def sale_confirm(customer_name:, payment_condition:, total: nil, items: nil, quantity: nil, unit_measure: nil, product_name: nil)
+        cond_label = payment_condition == "credit" ? "crédito" : "contado"
+        if items.present?
+          <<~MSG.strip
+            Venta a #{customer_name}:
+            #{format_cart_lines(items)}
+            Total: $#{format_money(cart_total(items, total))} (#{cond_label}). ¿Confirmo? (sí/no)
+          MSG
+        else
+          "Venta a #{customer_name}: #{format_qty(quantity)}#{unit_measure} #{product_name} = $#{format_money(total)} (#{cond_label}). ¿Confirmo? (sí/no)"
+        end
+      end
+
+      def sale_recorded(reference_number:, items: nil, product_name: nil, current_quantity: nil, unit_measure: nil, total: nil)
+        lines = [ "✅ #{reference_number} registrada." ]
+        if items.present?
+          Array(items).each do |item|
+            item = item.with_indifferent_access
+            next if item[:current_quantity].nil? || item[:product_name].blank?
+
+            lines << " Stock #{item[:product_name]}: #{format_qty(item[:current_quantity])}#{item[:unit_measure]}"
+          end
+        else
+          stock = stock_suffix(product_name, current_quantity, unit_measure)
+          lines[0] = "#{lines[0]}#{stock}"
+        end
+        lines.join
       end
 
       def sale_parse_error
-        'No entendí. Ejemplo: "Vendí 10kg de arroz" o "Fiado a María 5kg arroz".'
+        'No entendí. Ejemplo: "Vendí 10kg de arroz" o "Vendí 10kg arroz y 5lt aceite".'
       end
 
       def product_not_found(name, in_inventory: true)
@@ -53,13 +85,40 @@ module WhatsappBot
         "No encontré el producto \"#{name}\"#{suffix}."
       end
 
-      def purchase_confirm(supplier_name:, product_name:, quantity:, unit_measure:, total:)
-        "Compra a #{supplier_name}:\n- #{product_name} #{format_qty(quantity)}#{unit_measure}: $#{format_money(total)}\nTotal: $#{format_money(total)}. ¿Confirmo?"
+      def purchase_cart(items:, supplier_name:, total: nil)
+        <<~MSG.strip
+          Compra a #{supplier_name}:
+          #{format_cart_lines(items)}
+          Total: $#{format_money(cart_total(items, total))}
+          Agrega otro producto o escribe *listo* para confirmar.
+        MSG
       end
 
-      def purchase_recorded(reference_number:, product_name: nil, current_quantity: nil, unit_measure: nil)
-        stock = stock_suffix(product_name, current_quantity, unit_measure)
-        "✅ #{reference_number} registrada.#{stock}"
+      def purchase_confirm(supplier_name:, items: nil, product_name: nil, quantity: nil, unit_measure: nil, total: nil)
+        if items.present?
+          <<~MSG.strip
+            Compra a #{supplier_name}:
+            #{format_cart_lines(items)}
+            Total: $#{format_money(cart_total(items, total))}. ¿Confirmo?
+          MSG
+        else
+          "Compra a #{supplier_name}:\n- #{product_name} #{format_qty(quantity)}#{unit_measure}: $#{format_money(total)}\nTotal: $#{format_money(total)}. ¿Confirmo?"
+        end
+      end
+
+      def purchase_recorded(reference_number:, items: nil, product_name: nil, current_quantity: nil, unit_measure: nil, total: nil)
+        sale_recorded(
+          reference_number: reference_number,
+          items: items,
+          product_name: product_name,
+          current_quantity: current_quantity,
+          unit_measure: unit_measure,
+          total: total
+        )
+      end
+
+      def purchase_parse_error
+        'No entendí. Ejemplo: "Recibí de Juanito: arroz 50kg a $2,000" o agrega varios productos y escribe *listo*.'
       end
 
       def payment_confirm(customer_name:, remaining:, reference_number:, amount:, new_balance:)
@@ -124,6 +183,23 @@ module WhatsappBot
       end
 
       private
+
+      def format_cart_lines(items)
+        Array(items).map { |item|
+          item = item.with_indifferent_access
+          line_total = item[:line_total] || (item[:quantity].to_d * item[:unit_price].to_d)
+          "- #{format_qty(item[:quantity])}#{item[:unit_measure]} #{item[:product_name]} = $#{format_money(line_total)}"
+        }.join("\n")
+      end
+
+      def cart_total(items, total = nil)
+        return total if total.present?
+
+        Array(items).sum { |item|
+          item = item.with_indifferent_access
+          item[:line_total] || (item[:quantity].to_d * item[:unit_price].to_d)
+        }
+      end
 
       def stock_suffix(product_name, current_quantity, unit_measure)
         return "" if current_quantity.nil? || product_name.blank?

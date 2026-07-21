@@ -74,18 +74,33 @@ class WhatsappBot::ResponseRendererTest < ActiveSupport::TestCase
     assert_includes WhatsappBot::ResponseRenderer.unknown_menu, "Reporte del día"
   end
 
-  test "payment confirm snapshot" do
-    text = WhatsappBot::ResponseRenderer.payment_confirm(
-      customer_name: "María",
-      remaining: 12_500,
-      reference_number: "VEN-002",
-      amount: 10_000,
-      new_balance: 2_500
+  test "multi-item sale confirmation snapshot" do
+    text = WhatsappBot::ResponseRenderer.sale_confirm(
+      customer_name: "Don Julio",
+      payment_condition: "cash",
+      items: [
+        { quantity: 10, unit_measure: "kg", product_name: "Arroz", unit_price: 2500, line_total: 25_000 },
+        { quantity: 2, unit_measure: "lt", product_name: "Aceite", unit_price: 7500, line_total: 15_000 }
+      ],
+      total: 40_000
     )
 
-    assert_equal(
-      "María tiene saldo de $12500 (VEN-002). Abono de $10000.\nSaldo pendiente: $2500. ¿Confirmo?",
-      text
+    assert_equal <<~MSG.strip, text
+      Venta a Don Julio:
+      - 10kg Arroz = $25000
+      - 2lt Aceite = $15000
+      Total: $40000 (contado). ¿Confirmo? (sí/no)
+    MSG
+  end
+
+  test "sale cart asks for more items or done" do
+    text = WhatsappBot::ResponseRenderer.sale_cart(
+      items: [
+        { quantity: 10, unit_measure: "kg", product_name: "Arroz", unit_price: 2500, line_total: 25_000 }
+      ]
     )
+
+    assert_includes text, "Agrega otro producto o escribe *listo*"
+    assert_includes text, "10kg Arroz = $25000"
   end
 end

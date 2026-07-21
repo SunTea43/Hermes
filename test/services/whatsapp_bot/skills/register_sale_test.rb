@@ -115,4 +115,43 @@ class WhatsappBot::Skills::RegisterSaleTest < ActiveSupport::TestCase
       )
     end
   end
+
+  test "creates multi-item sale order" do
+    other = Product.create!(
+      business: @business,
+      name: "Aceite Multi",
+      unit_measure: "lt",
+      status: "active"
+    )
+    Inventory.create!(
+      business: @business,
+      product: other,
+      current_quantity: 40,
+      minimum_alert_quantity: 5,
+      last_updated_at: Time.current
+    )
+    inventory_one = inventories(:one)
+    before_one = inventory_one.current_quantity
+
+    result = WhatsappBot::Skills::RegisterSale.call(
+      user: @user,
+      business: @business,
+      input: {
+        customer_name: "Venta general",
+        payment_condition: "cash",
+        items: [
+          { product_id: @product.id, quantity: 2, unit_price: 2500 },
+          { product_id: other.id, quantity: 1, unit_price: 7500 }
+        ]
+      },
+      idempotency_key: "SM-sale-multi:registrar_venta"
+    )
+
+    assert result.success?
+    order = SalesOrder.find(result.data[:order_id])
+    assert_equal 2, order.sales_order_items.count
+    assert_equal 12_500, order.total
+    assert_equal before_one - 2, inventory_one.reload.current_quantity
+    assert_equal 39, other.inventory.reload.current_quantity
+  end
 end
