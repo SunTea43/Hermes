@@ -6,6 +6,19 @@
       quantity: 10
       product_name: arroz
 
+- id: sale_multi_item
+  message: "Crea una venta con 10kg de arroz y 5 lt de aceite"
+  expected:
+    intent: sale
+    entities:
+      items:
+        - quantity: 10
+          product_name: arroz
+          unit: kg
+        - quantity: 5
+          product_name: aceite
+          unit: lt
+
 - id: sale_credit_jargon
   message: "Fiado a María 5kg arroz"
   expected:

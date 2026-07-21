@@ -82,6 +82,9 @@ module WhatsappBot
         case value
         when Numeric then value.to_f
         when String then value.to_s.downcase.strip
+        when Array then value.map { |item| normalize(item) }
+        when Hash
+          value.to_h.transform_keys(&:to_s).transform_values { |item| normalize(item) }
         else value
         end
       end

@@ -6,6 +6,23 @@ Suite puntuada (no pass/fail por caso) para medir calidad del Interpreter LLM.
 
 Casos en `test/evals/cases/*.yml` (ventas, compras, pagos, inventario, reportes, ambiguos).
 
+Ejemplo multi-ítem (`sales.yml`):
+
+```yaml
+- id: sale_multi_item
+  message: "Crea una venta con 10kg de arroz y 5 lt de aceite"
+  expected:
+    intent: sale
+    entities:
+      items:
+        - quantity: 10
+          product_name: arroz
+          unit: kg
+        - quantity: 5
+          product_name: aceite
+          unit: lt
+```
+
 Umbrales en `test/evals/thresholds.yml`:
 
 - `intent_accuracy`
