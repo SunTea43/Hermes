@@ -6,17 +6,21 @@ Hermes puede enrutar mensajes con el dispatcher **regex** (default) o con un **I
 
 ### 1. Por tienda (`businesses.whatsapp_agent`)
 
-| Valor | Comportamiento |
-| --- | --- |
-| `regex` | Dispatcher por expresiones regulares (actual) |
-| `llm` | Interpreter LLM + guard de confianza |
-| `default` | Usa el default global de `config/whatsapp.yml` |
+| Valor en BD | Ruby | Comportamiento |
+| --- | --- | --- |
+| `0` | `regex` / `regex?` | Dispatcher por expresiones regulares (actual) |
+| `1` | `llm` / `llm?` | Interpreter LLM + guard de confianza |
+| `2` | `inherit` / `inherit?` | Usa el default global de `config/whatsapp.yml` |
+
+Es un **enum integer-backed** en `Business`. La clave Ruby es `:inherit` (no `:default`) para no chocar con APIs de ActiveRecord.
 
 ```ruby
 business = Business.find(12)
-business.update!(whatsapp_agent: "llm")   # activar AI
-business.update!(whatsapp_agent: "regex") # volver al bot clásico
+business.update!(whatsapp_agent: :llm)     # activar AI
+business.update!(whatsapp_agent: :regex)   # volver al bot clásico
+business.update!(whatsapp_agent: :inherit) # seguir config/whatsapp.yml → agent.default
 ```
+
 
 ### 2. Default global (`config/whatsapp.yml`)
 
@@ -30,7 +34,7 @@ production:
     confidence_threshold: 0.7
 ```
 
-Cuando una tienda tiene `whatsapp_agent: default`, se usa `agent.default`.
+Cuando una tienda tiene `whatsapp_agent: inherit` (2), se usa `agent.default`.
 
 ## Variables de entorno (LLM)
 
@@ -79,7 +83,7 @@ El loader es `WhatsappBot::Prompts::Catalog`; la fachada `WhatsappBot::Prompts::
 ## Rollback
 
 ```ruby
-Business.find(12).update!(whatsapp_agent: "regex")
+Business.find(12).update!(whatsapp_agent: :regex)
 # o
 # config/whatsapp.yml → agent.default: regex
 ```

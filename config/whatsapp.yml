@@ -10,7 +10,7 @@ default: &default
   #   "12": twilio
   business_overrides: {}
   agent:
-    # Global default when a business has whatsapp_agent=default
+    # Global default when a business has whatsapp_agent=inherit (2)
     default: regex
     llm_provider: openai # openai | fake
     model: gpt-4o-mini

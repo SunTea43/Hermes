@@ -55,4 +55,36 @@ class BusinessTest < ActiveSupport::TestCase
       role: "owner"
     ).status
   end
+
+  test "whatsapp_agent is an integer-backed enum" do
+    business = businesses(:one)
+
+    assert business.regex?
+    assert_not business.llm?
+    assert_equal 0, business.read_attribute_before_type_cast(:whatsapp_agent)
+
+    business.update!(whatsapp_agent: :llm)
+    assert business.llm?
+    assert_equal "llm", business.whatsapp_agent
+    assert_equal 1, business.read_attribute_before_type_cast(:whatsapp_agent)
+    assert_equal "llm", business.resolved_whatsapp_agent
+  end
+
+  test "inherit resolves to the global agent default" do
+    business = businesses(:one)
+    business.update!(whatsapp_agent: :inherit)
+
+    assert business.inherit?
+    assert_equal "inherit", business.whatsapp_agent
+    assert_equal 2, business.read_attribute_before_type_cast(:whatsapp_agent)
+    assert_equal WhatsappBot::Config.agent_default.to_s, business.resolved_whatsapp_agent
+  end
+
+  test "rejects unknown whatsapp_agent values" do
+    business = businesses(:one)
+    business.whatsapp_agent = "gpt"
+
+    assert_not business.valid?
+    assert_includes business.errors[:whatsapp_agent], "is not included in the list"
+  end
 end
