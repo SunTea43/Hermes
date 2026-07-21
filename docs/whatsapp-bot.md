@@ -2,34 +2,39 @@
 
 Hermes usa WhatsApp como canal principal de operación. Este documento describe la arquitectura del bot, los flujos conversacionales y la integración con el proveedor de mensajes (Meta Cloud API por defecto; Twilio disponible).
 
+Arquitectura completa (skills, LLM, Mermaids WhatsApp + web): [whatsapp-architecture.md](./whatsapp-architecture.md).  
+Catálogo de skills y ejemplos: [whatsapp-skills.md](./whatsapp-skills.md).
+
 ---
 
 ## Arquitectura del bot
 
-```text
-Usuario WhatsApp
-      │
-      ▼
-Proveedor (Meta / Twilio) ──→ GET/POST /webhooks/whatsapp[/:provider]
-      │
-      ▼
-WebhooksController
-      │  (firma + parse → InboundMessage)
-      ▼
-WhatsappBot::DispatchService    ← identifica intención
-      │
-      ├──→ SaleHandler          ← registra venta
-      ├──→ PurchaseHandler      ← registra compra
-      ├──→ PaymentHandler       ← registra pago
-      ├──→ InventoryQueryHandler← consulta stock
-      ├──→ ReportHandler        ← genera reporte
-      └──→ UnknownHandler       ← menú de ayuda
-      │
-      ▼
-WhatsappBot::Sender             ← fachada → Provider Adapter → API del BSP
+```mermaid
+flowchart TD
+  U[Usuario WhatsApp] --> Prov[Meta / Twilio]
+  Prov -->|GET/POST /webhooks/whatsapp/:provider| WH[WebhooksController]
+  WH -->|firma + InboundMessage| Auth[Auth + BusinessResolver]
+  Auth --> D[DispatchService]
+  D -->|sesión o regex/LLM| H{Handler}
+  H --> Sale[SaleHandler]
+  H --> Purchase[PurchaseHandler]
+  H --> Payment[PaymentHandler]
+  H --> Inv[InventoryQueryHandler]
+  H --> Report[ReportHandler]
+  H --> Unknown[UnknownHandler]
+  Sale --> Skills[Skills::Registry]
+  Purchase --> Skills
+  Payment --> Skills
+  Inv --> Skills
+  Report --> Skills
+  Skills --> RR[ResponseRenderer]
+  Unknown --> RR
+  RR --> Sender[Sender → Provider Adapter]
+  Sender --> Prov
 ```
 
-Para cambiar de proveedor por teléfono o por tienda, ver [whatsapp-provider-switching.md](./whatsapp-provider-switching.md).
+Para cambiar de proveedor por teléfono o por tienda, ver [whatsapp-provider-switching.md](./whatsapp-provider-switching.md).  
+Para regex vs Interpreter LLM, ver [whatsapp-agent-switching.md](./whatsapp-agent-switching.md).
 
 ---
 
@@ -95,6 +100,28 @@ Bot     → "Compra a Juanito:
            Total: $100,000. ¿Confirmo?"
 Usuario → "Sí"
 Bot     → "✅ COM-001 registrada. Stock Arroz: 90kg → 140kg"
+```
+
+### Reporte del día
+
+```text
+Usuario → "Reporte del día"
+Bot     → "📊 Resumen del día 20/07:
+           - Ventas: 12 (total $450,000)
+             • Contado: $320,000
+             • Crédito: $130,000
+           - Cartera total pendiente: $85,000"
+```
+
+El reporte por WhatsApp es un **mensaje de texto** (`consultar_resumen_ventas`). Para catálogo masivo en Excel/CSV usar el portal: Productos → Importar Excel.
+
+### Venta multi-ítem
+
+```text
+Usuario → "Vendí 10kg arroz y 5lt aceite"
+Bot     → "- 10kg Arroz = $25,000
+           - 5lt Aceite = $37,500
+           Total: $62,500. ¿A quién? ..."
 ```
 
 ---

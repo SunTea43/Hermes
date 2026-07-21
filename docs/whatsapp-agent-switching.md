@@ -68,7 +68,7 @@ schema:
   ...
 ```
 
-Para iterar el prompt: editá el YAML (instrucciones o ejemplos). Para un cambio mayor, copiá el archivo a `interpreter_v2.yml` y apuntá el código/`VERSION` a esa versión. Medí regresiones con la suite de evals.
+Para iterar el prompt: edita el YAML (instrucciones o ejemplos). Para un cambio mayor, copia el archivo a `interpreter_v2.yml` y apunta el código/`VERSION` a esa versión. Mide regresiones con la suite de evals.
 
 El loader es `WhatsappBot::Prompts::Catalog`; la fachada `WhatsappBot::Prompts::InterpreterV1` mantiene la API `SYSTEM` / `SCHEMA` / `VERSION`.
 

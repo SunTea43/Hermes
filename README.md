@@ -1,6 +1,6 @@
 # Hermes — Sistema de Gestión Comercial para Pequeños Negocios
 
-Hermes es una plataforma multi-tenant de gestión comercial diseñada para pequeños negocios (tiendas, distribuidoras, minimercados). Permite registrar compras, ventas, inventario y cartera **desde WhatsApp**, y administrar roles y ver reportes contables desde un **portal web**.
+Hermes es una plataforma multi-tenant de gestión comercial diseñada para pequeños negocios (tiendas, distribuidoras, minimercados). Permite registrar compras, ventas, inventario y cartera **desde WhatsApp**, y administrar roles y ver reportes desde un **portal web**.
 
 ---
 
@@ -14,39 +14,41 @@ Los dueños de pequeños negocios en Latinoamérica llevan sus operaciones en pa
 
 | Canal | Propósito |
 |-------|-----------|
-| **WhatsApp Bot** | Registro operativo diario: ventas, compras, pagos, consultas de stock |
-| **Portal Web** | Administración: roles, permisos, reportes contables, exportación |
+| **WhatsApp Bot** | Registro operativo diario: ventas, compras, pagos, consultas de stock, resumen del día |
+| **Portal Web** | Administración: roles, permisos, CRUDs, importación Excel/CSV de productos |
 
 ---
 
-## Estado actual del proyecto — Fase 2
+## Estado actual del proyecto
 
-### ✅ Fase 1: Setup (completa)
+### Completado
 
-- Proyecto Rails 8.1 inicializado con PostgreSQL
-- Autenticación con Devise (`User` con `whatsapp_phone` único)
-- Autorización con Pundit (políticas por rol y negocio)
-- Esquema completo de base de datos (11 tablas migradas)
-- Todos los modelos con sus asociaciones
-- UI base: Bootstrap 5 + ViewComponent
-- Background jobs con Solid Queue
+- Proyecto Rails 8.1 + PostgreSQL, Devise, Pundit, Bootstrap 5
+- CRUDs web: negocios, productos, inventarios, compras, ventas, pagos
+- WhatsApp: webhook Meta (default) / Twilio, adapters, auth por tienda
+- Skills de dominio con idempotencia y permisos por rol
+- Handlers conversacionales con confirmación en escrituras
+- Interpreter LLM opcional por tienda + evals
+- Response renderer determinista
+- Jobs: alerta de stock bajo y recordatorio de cartera
 
-### 🔄 Fase 2: Módulo de Ventas (en progreso)
+### Documentación WhatsApp
 
-- [x] Modelos `SalesOrder` y `SalesOrderItem` con nested attributes
-- [x] CRUD completo: controllers + views para ventas, compras, pagos, productos, inventario
-- [x] Navbar con secciones: Negocios, Productos, Compras, Ventas, Inventario
-- [ ] Webhook de WhatsApp (integración Twilio)
-- [ ] Parser de lenguaje natural (intenciones de venta/compra)
-- [ ] Actualización automática de inventario al registrar venta/compra
-- [ ] Flujos conversacionales con confirmación
+| Documento | Contenido |
+|-----------|-----------|
+| [docs/whatsapp-architecture.md](docs/whatsapp-architecture.md) | Arquitectura actual, Mermaids WhatsApp + web |
+| [docs/whatsapp-skills.md](docs/whatsapp-skills.md) | Descripción de cada skill + ejemplos |
+| [docs/whatsapp-bot.md](docs/whatsapp-bot.md) | Flujos conversacionales y configuración |
+| [docs/whatsapp-business-authorization.md](docs/whatsapp-business-authorization.md) | Auth de tiendas y usuarios |
+| [docs/whatsapp-agent-switching.md](docs/whatsapp-agent-switching.md) | Regex vs LLM |
+| [docs/whatsapp-provider-switching.md](docs/whatsapp-provider-switching.md) | Meta vs Twilio |
+| [docs/whatsapp-evals.md](docs/whatsapp-evals.md) | Suite de evals del interpreter |
 
-### Pendiente (fases 3–6)
+### Pendiente / roadmap
 
-- Fase 3: Alertas de stock bajo
-- Fase 4: Cartera / ventas a crédito y registro de pagos desde WhatsApp
-- Fase 5: Reportes (dashboard diario, rentabilidad, cartera)
-- Fase 6: OCR de recibos desde imágenes de WhatsApp
+- Skills adicionales: buscar productos, cartera detallada, ajuste de inventario
+- Reportes contables exportables (PDF/Excel) en el portal
+- OCR de recibos desde imágenes de WhatsApp
 
 ---
 
@@ -54,44 +56,41 @@ Los dueños de pequeños negocios en Latinoamérica llevan sus operaciones en pa
 
 | Capa | Tecnología | Razón |
 |------|------------|-------|
-| **Backend** | Rails 8.1.2 (Ruby 3.x) | Velocidad de desarrollo, convenciones sólidas |
-| **Base de datos** | PostgreSQL | ACID, JSON nativo, full-text search |
-| **Autenticación** | Devise | Estándar Rails, manejo de sesiones y recuperación |
-| **Autorización** | Pundit | Políticas granulares por rol y recurso |
-| **UI** | Bootstrap 5 + ViewComponent | Componentes reutilizables, UI responsive |
-| **Forms** | simple_form | Formularios más limpios con Bootstrap |
-| **Jobs** | Solid Queue + Solid Cable | Alertas programadas, WebSockets |
-| **WhatsApp** | Twilio (próximo) | Webhook + envío de mensajes |
-| **OCR** | Google Cloud Vision / Tesseract (futuro) | Extracción de datos desde fotos de recibos |
-| **Deploy** | Kamal / Railway / Render | Rails-friendly, escalable |
+| **Backend** | Rails 8.1 (Ruby 3.x) | Velocidad de desarrollo, convenciones sólidas |
+| **Base de datos** | PostgreSQL | ACID, JSON nativo |
+| **Autenticación** | Devise | Sesiones y recuperación |
+| **Autorización** | Pundit | Políticas por rol y recurso |
+| **UI** | Bootstrap 5 + ViewComponent | UI responsive |
+| **Jobs** | Solid Queue | Alertas programadas |
+| **WhatsApp** | Meta Cloud API (default) / Twilio | Webhook + envío vía adapters |
+| **LLM (opcional)** | OpenAI-compatible | Interpreter de intenciones por tienda |
+| **Deploy** | Kamal / Railway / Render | Rails-friendly |
 
 ---
 
 ## Modelo de datos
 
-El esquema está completamente migrado. Las 11 tablas principales:
+Tablas principales:
 
 ```
-users              — Usuarios del sistema (autenticados por email + whatsapp_phone)
-businesses         — Negocios (multi-tenant, cada negocio es independiente)
-role_assignments   — Asignación de rol (owner/manager/operator/viewer) por negocio
-products           — Productos de un negocio
-product_prices     — Historial de precios de compra/venta por producto
-purchase_orders    — Órdenes de compra (proveedor → negocio)
-purchase_order_items — Ítems de una orden de compra (snapshot de precio)
-sales_orders       — Órdenes de venta (negocio → cliente)
-sales_order_items  — Ítems de una orden de venta (snapshot de precio + descuento)
-payments           — Pagos abonados contra una orden de venta
-inventories        — Stock actual + alerta mínima por producto/negocio
-inventory_movements — Auditoría completa de movimientos de inventario
+users                    — email + whatsapp_phone
+businesses               — multi-tenant (+ whatsapp_enabled, whatsapp_agent)
+role_assignments         — rol + módulos + whatsapp_enabled por tienda
+products / product_prices
+purchase_orders / purchase_order_items
+sales_orders / sales_order_items
+payments
+inventories / inventory_movements
+whatsapp_message_audits
+whatsapp_skill_executions  — idempotencia de skills de escritura
 ```
 
 ### Decisiones de diseño clave
 
-- **Snapshot de precio en ítems:** `unit_price` se guarda al momento de crear el ítem, no referencia el precio actual. Esto garantiza que historial contable sea inmutable.
-- **Historial de precios separado:** `product_prices` con `start_at`/`end_at` permite ver precio histórico sin afectar transacciones pasadas.
-- **Movimientos de inventario auditados:** cada cambio de stock genera un `inventory_movement` con cantidad anterior, nueva, tipo y usuario responsable.
-- **Multi-tenant por negocio:** toda entidad operativa (órdenes, productos, inventario) está asociada a un `business_id`. Los usuarios acceden solo a los negocios donde tienen asignación activa.
+- **Snapshot de precio en ítems:** el historial contable no cambia si el precio actual se actualiza.
+- **Movimientos de inventario auditados:** cada cambio genera `inventory_movement`.
+- **Skills como frontera WhatsApp:** handlers no escriben directo; invocan `Skills::Registry`.
+- **Multi-tenant por negocio:** toda entidad operativa lleva `business_id`.
 
 ---
 
@@ -99,36 +98,12 @@ inventory_movements — Auditoría completa de movimientos de inventario
 
 | Rol | Descripción |
 |-----|-------------|
-| `owner` | Propietario del negocio. Acceso total: crear gestores, cambiar precios, ver todos los reportes, eliminar registros. |
-| `manager` | Gestor. Puede registrar compras, ventas, pagos y actualizar inventario. No puede eliminar ni cambiar precios globales. |
-| `operator` | Operario. Puede registrar ventas y compras (según módulos asignados). No puede ver reportes financieros ni gestionar cartera. |
-| `viewer` | Solo lectura. Accede únicamente a los reportes que le sean asignados. |
+| `owner` | Acceso total al negocio |
+| `manager` | Compras, ventas, pagos, inventario |
+| `operator` | Ventas/compras según `assigned_modules` |
+| `viewer` | Solo lectura |
 
-La autorización se implementa con **Pundit**. Cada policy consulta el rol del usuario en el negocio en cuestión mediante `User#role_for(business)` y `User#owner_or_manager_for?(business)`.
-
----
-
-## Estructura del proyecto
-
-```
-hermes/
-├── app/
-│   ├── models/              # Entidades de dominio
-│   ├── controllers/         # API REST + WhatsApp webhook (próximo)
-│   ├── views/               # ERB con Bootstrap 5
-│   ├── policies/            # Autorización Pundit por recurso
-│   ├── components/          # ViewComponents (CardComponent, PageHeaderComponent)
-│   ├── jobs/                # Background jobs (alertas, notificaciones)
-│   └── services/            # Lógica de negocio desacoplada (próximo)
-├── db/
-│   ├── migrate/             # 14 migraciones versionadas
-│   ├── schema.rb            # Estado actual del esquema
-│   └── seeds.rb
-├── config/
-│   ├── routes.rb            # Recursos REST + Devise
-│   └── recurring.yml        # Jobs programados (Solid Queue)
-└── architecture.md          # Diseño de dominio y flujos
-```
+Detalle: [docs/autorizacion.md](docs/autorizacion.md).
 
 ---
 
@@ -138,94 +113,87 @@ hermes/
 
 - Ruby 3.3+
 - PostgreSQL 14+
-- Node.js 20+ (para assets)
+- Node.js 20+
 - Yarn
 
 ### Instalación
 
 ```bash
-# Clonar e instalar dependencias
 git clone <repo>
 cd hermes
 bundle install
 yarn install
-
-# Base de datos
-bin/rails db:create db:migrate
-
-# Servidor de desarrollo
+bin/rails db:create db:migrate db:seed
 bin/dev
 ```
 
-La app estará disponible en `http://localhost:3000`.
+App en `http://localhost:3000`.
 
-### Variables de entorno
+### Variables de entorno (WhatsApp / LLM)
 
-Crear `config/application.yml` o usar `credentials`:
+```bash
+# Meta (default)
+META_WHATSAPP_ACCESS_TOKEN=...
+META_WHATSAPP_PHONE_NUMBER_ID=...
+META_WHATSAPP_APP_SECRET=...
+META_WHATSAPP_VERIFY_TOKEN=...
 
-```yaml
-# Próximas integraciones
-TWILIO_ACCOUNT_SID: "..."
-TWILIO_AUTH_TOKEN: "..."
-TWILIO_WHATSAPP_NUMBER: "whatsapp:+1234567890"
-GCP_PROJECT_ID: "..."   # para OCR con Google Vision
+# Twilio (opcional)
+TWILIO_ACCOUNT_SID=...
+TWILIO_AUTH_TOKEN=...
+TWILIO_WHATSAPP_NUMBER=whatsapp:+...
+
+# Interpreter LLM (opcional)
+OPENAI_API_KEY=...
 ```
+
+Ver [docs/whatsapp-bot.md](docs/whatsapp-bot.md) y [docs/whatsapp-provider-switching.md](docs/whatsapp-provider-switching.md).
 
 ---
 
-## Flujos principales (WhatsApp — próximo)
+## Flujos principales
 
-### Registrar una venta
+### WhatsApp — venta
 
 ```
 Usuario: "Vendí 10kg de arroz a Don Julio"
-Bot:     "Don Julio. 10kg arroz × $2,000 = $20,000. ¿Contado o crédito?"
-Usuario: "A crédito, cobra el viernes"
-Bot:     "✅ Venta registrada VEN-001. Stock: 50kg → 40kg. Pendiente cobro: $20,000"
+Bot:     confirma ítems → contado/crédito → ¿Confirmo?
+Usuario: "Sí"
+Bot:     "✅ VEN-001 registrada. Stock: ..."
 ```
 
-### Consultar inventario
+### WhatsApp — compra
 
 ```
-Usuario: "¿Qué está bajo?"
-Bot:     "⚠️ Aceite: 3L (mínimo 10L), Sal: 2kg (mínimo 5kg)"
+Usuario: "Recibí de Juanito: arroz 50kg a $2,000"
+Bot:     resumen → ¿Confirmo? → "✅ COM-001 ..."
 ```
 
-### Registrar un pago
+### WhatsApp — reporte (mensaje)
 
 ```
-Usuario: "Don Julio pagó $10,000"
-Bot:     "Abono registrado. Saldo pendiente Don Julio: $10,000 (vence viernes)"
+Usuario: "Reporte del día"
+Bot:     "📊 Resumen del día ... Ventas / Contado / Crédito / Cartera"
 ```
 
----
+### Portal — catálogo (Excel/CSV)
 
-## Reportes planificados
+Productos → Importar Excel → subir `.xlsx`/`.csv` o descargar plantilla CSV.
 
-| Reporte | Disponible en |
-|---------|--------------|
-| Dashboard diario (ventas, compras, cartera) | WhatsApp + Web |
-| Estado de cartera (clientes con deuda) | WhatsApp + Web |
-| Análisis de inventario (stock, rotación) | Web |
-| Rentabilidad por producto | Web |
-| Movimientos mensuales | Web |
-| Auditoría y trazabilidad | Web |
-| Vista contable (P&L simplificado, flujo de caja) | Web (PDF/Excel) |
+Más ejemplos y Mermaids: [docs/whatsapp-skills.md](docs/whatsapp-skills.md).
 
 ---
 
 ## Arquitectura de capas
 
 ```
-Presentación     WhatsApp Bot Interface  ←→  Portal Web (Bootstrap)
-                         ↓
-Aplicación       Parser NLP · Webhook handler · API REST · Auth
-                         ↓
-Lógica negocio   Validaciones · Cálculos · Alertas · Reportes
-                         ↓
-Datos            ActiveRecord · Consultas · Transacciones ACID
-                         ↓
-Base de datos    PostgreSQL
+Presentación     WhatsApp Bot  ←→  Portal Web
+                        ↓
+Aplicación       Webhook · Dispatch · Interpreter · Skills · Pundit
+                        ↓
+Dominio          Órdenes · Inventario · Pagos · Reportes
+                        ↓
+Datos            ActiveRecord · PostgreSQL
 ```
 
 ---
@@ -234,9 +202,8 @@ Base de datos    PostgreSQL
 
 | Requisito | Objetivo |
 |-----------|----------|
-| Disponibilidad | 99.5% |
-| Latencia bot | < 3 segundos por interacción |
-| Consistencia | ACID para transacciones con dinero |
-| Auditoría | Cada cambio registra usuario, fecha y acción |
-| Aislamiento | Cada usuario ve solo datos de sus negocios |
-| Escala | 50–100 usuarios por negocio, múltiples negocios |
+| Latencia bot | < 3 s por interacción |
+| Consistencia | ACID en transacciones con dinero/stock |
+| Idempotencia | Reintentos del proveedor no duplican órdenes |
+| Aislamiento | Solo datos de tiendas autorizadas |
+| Auditoría | Mensajes WhatsApp y movimientos de inventario trazables |
