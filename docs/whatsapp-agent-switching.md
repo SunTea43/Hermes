@@ -41,10 +41,32 @@ OPENAI_BASE_URL=https://api.openai.com/v1   # opcional; útil para proxies compa
 
 En `development`/`test`, `llm_provider: fake` evita llamadas reales.
 
-## Prompt versionado
+## Prompt versionado (YAML)
 
-El system prompt vive en `WhatsappBot::Prompts::InterpreterV1` (`VERSION = "interpreter_v1"`).
-Cambios de prompt o modelo deben versionarse (p.ej. `InterpreterV2`) y medirse con la suite de evals.
+Los prompts viven en `config/whatsapp_prompts/*.yml` (hoy `interpreter_v1.yml`).
+
+Estructura:
+
+```yaml
+version: interpreter_v1
+instructions: |
+  Texto del system prompt...
+retry_user_template: |
+  Reintenta... %{message}
+examples:
+  - user: "Vendí 10kg de arroz"
+    json:
+      intent: sale
+      entities: {}
+      confidence: 0.9
+schema:
+  type: object
+  ...
+```
+
+Para iterar el prompt: editá el YAML (instrucciones o ejemplos). Para un cambio mayor, copiá el archivo a `interpreter_v2.yml` y apuntá el código/`VERSION` a esa versión. Medí regresiones con la suite de evals.
+
+El loader es `WhatsappBot::Prompts::Catalog`; la fachada `WhatsappBot::Prompts::InterpreterV1` mantiene la API `SYSTEM` / `SCHEMA` / `VERSION`.
 
 ## Guardrails del Interpreter
 

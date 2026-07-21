@@ -30,7 +30,7 @@ module WhatsappBot
     end
 
     def interpret_once(message, retrying: false)
-      user_prompt = retrying ? "Reintentá. Respondé SOLO JSON válido.\nMensaje: #{message}" : message
+      user_prompt = retrying ? @prompt.retry_user_prompt(message) : message
       content = @client.complete(
         system_prompt: @prompt::SYSTEM,
         user_prompt: user_prompt,
