@@ -48,7 +48,7 @@ Los dueños de pequeños negocios en Latinoamérica llevan sus operaciones en pa
 
 - Skills adicionales: buscar productos, cartera detallada, ajuste de inventario
 - Reportes contables exportables (PDF/Excel) en el portal
-- OCR de recibos desde imágenes de WhatsApp
+- Audio e imágenes en WhatsApp para armar borradores de compra/venta (STT + multimodal, confirmar/editar/cancelar) — plan en [docs/whatsapp-architecture.md](docs/whatsapp-architecture.md#plan-audio-e-imágenes-para-órdenes-compra--venta)
 
 ---
 

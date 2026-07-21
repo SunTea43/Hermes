@@ -102,6 +102,35 @@ Usuario → "Sí"
 Bot     → "✅ COM-001 registrada. Stock Arroz: 90kg → 140kg"
 ```
 
+### Cancelar o corregir un borrador
+
+En recolección de ítems y en confirmación, `no` / `cancelar` limpia la sesión y no llama a la skill (no hay escritura ni movimiento de inventario).
+
+```text
+Usuario → "Recibí de Juanito: arroz 50kg a $2,000"
+Bot     → Compra a Juanito: … Agrega otro producto o escribe *listo*
+Usuario → cancelar
+Bot     → Compra cancelada.
+```
+
+```text
+Usuario → … (borrador listo)
+Bot     → … ¿Confirmo?
+Usuario → no
+Bot     → Compra cancelada.
+```
+
+Pendiente de producto (plan de media): comandos de edición del borrador (`quitar arroz`, `cambiar precio …`) y el atajo confirmar-primero tras audio/foto. Ver [whatsapp-architecture.md](./whatsapp-architecture.md#plan-audio-e-imágenes-para-órdenes-compra--venta).
+
+### Audio e imágenes (planificado)
+
+Hoy solo se procesa texto (el caption de una imagen/audio, si viene). El plan es:
+
+1. **Audio:** transcribir → mismo Interpreter/handlers → borrador → confirmar / editar / cancelar.
+2. **Imagen:** modelo multimodal con el mismo schema de entidades → mismo flujo de revisión.
+
+Detalle de fases, arquitectura y criterios de aceptación: [whatsapp-architecture.md](./whatsapp-architecture.md#plan-audio-e-imágenes-para-órdenes-compra--venta).
+
 ### Reporte del día
 
 ```text
