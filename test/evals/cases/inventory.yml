@@ -1,0 +1,11 @@
+- id: inventory_query
+  message: "¿Cuánto arroz me queda?"
+  expected:
+    intent: inventory_query
+    entities:
+      product_name: arroz
+
+- id: inventory_low
+  message: "¿Qué está bajo?"
+  expected:
+    intent: inventory_query

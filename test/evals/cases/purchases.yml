@@ -1,0 +1,9 @@
+- id: purchase_basic
+  message: "Recibí de Juanito: arroz 50kg a $2000"
+  expected:
+    intent: purchase
+    entities:
+      supplier_name: Juanito
+      product_name: arroz
+      quantity: 50
+      unit_price: 2000

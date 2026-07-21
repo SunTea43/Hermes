@@ -1,0 +1,9 @@
+- id: unknown_gibberish
+  message: "asdf qwerty"
+  expected:
+    intent: unknown
+
+- id: ambiguous_short
+  message: "eso"
+  expected:
+    intent: clarify
