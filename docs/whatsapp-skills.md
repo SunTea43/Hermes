@@ -253,6 +253,8 @@ Bot     → ✅ COM-001 registrada. Stock Arroz: 140kg
 
 Flujo multi-ítem: el bot puede pedir más productos y el usuario escribe `listo` para confirmar; entonces se llama `registrar_compra`.
 
+En confirmación (o mientras se agregan ítems), `no` / `cancelar` aborta el borrador sin llamar a la skill. La edición fina del carrito y el ingreso por audio/imagen están planificados en [whatsapp-architecture.md](./whatsapp-architecture.md#plan-audio-e-imágenes-para-órdenes-compra--venta).
+
 ### Pago de cartera
 
 ```text
