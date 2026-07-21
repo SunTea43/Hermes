@@ -5,6 +5,10 @@ alwaysApply: true
 
 # Preferencias del agente
 
+## Idioma
+
+Seguir `AGENTS.md`: español neutro (sin voseo argentino) en prompts, bot y copy de producto.
+
 ## Git: sin commits automáticos
 
 - **No hacer `git commit` ni `git push`** salvo que el usuario lo pida explícitamente.

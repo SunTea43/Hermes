@@ -34,7 +34,32 @@ module WhatsappBot
         settings.fetch("business_overrides", {}).transform_keys(&:to_s).transform_values(&:to_sym)
       end
 
+      def agent_settings
+        settings.fetch("agent", {})
+      end
+
+      def agent_default
+        agent_settings.fetch("default", "regex").to_sym
+      end
+
+      def agent_llm_provider
+        agent_settings.fetch("llm_provider", "openai").to_sym
+      end
+
+      def agent_model
+        agent_settings.fetch("model", "gpt-4o-mini").to_s
+      end
+
+      def agent_temperature
+        agent_settings.fetch("temperature", 0).to_f
+      end
+
+      def agent_confidence_threshold
+        agent_settings.fetch("confidence_threshold", 0.7).to_f
+      end
+
       private
+
 
       def load!
         path = Rails.root.join("config/whatsapp.yml")

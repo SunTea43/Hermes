@@ -62,7 +62,7 @@ class WebhooksController < ApplicationController
   end
 
   def deny_unknown_user(inbound, audit)
-    message = "No encontré una cuenta asociada a este número. Registrate en #{ENV.fetch('APP_HOST', 'la app')}."
+    message = "No encontré una cuenta asociada a este número. Regístrate en #{ENV.fetch('APP_HOST', 'la app')}."
     audit.mark_denied!(error_message: "unknown_user")
     WhatsappBot::Sender.deliver(inbound.from, message)
   end
@@ -93,16 +93,16 @@ class WebhooksController < ApplicationController
     audit.mark_denied!(error_message: e.message, business: resolution&.business)
     WhatsappBot::Sender.deliver(
       inbound.from,
-      "No tenés permiso para operar esta tienda por WhatsApp."
+      "No tienes permiso para operar esta tienda por WhatsApp."
     )
   end
 
   def denial_message(error)
     case error
     when :not_authorized
-      "Tu cuenta no tiene una tienda autorizada para WhatsApp. Pedile a un admin que la habilite."
+      "Tu cuenta no tiene una tienda autorizada para WhatsApp. Pídele a un admin que la habilite."
     when :ambiguous
-      "Tenés varias tiendas habilitadas. Configurá tu tienda default de WhatsApp en la app o pedile a un admin que deje una sola habilitada."
+      "Tienes varias tiendas habilitadas. Configura tu tienda default de WhatsApp en la app o pídele a un admin que deje una sola habilitada."
     else
       "No pude resolver la tienda para este mensaje."
     end

@@ -1,12 +1,13 @@
 module WhatsappBot
   class BaseHandler
-    def initialize(user, message, session, state = {}, business: nil, idempotency_key: nil)
+    def initialize(user, message, session, state = {}, business: nil, idempotency_key: nil, entities: {})
       @user = user
       @message = message
       @session = session
       @state = state
       @business = business
       @idempotency_key = idempotency_key
+      @entities = entities.to_h.with_indifferent_access
     end
 
     def call
@@ -23,6 +24,10 @@ module WhatsappBot
       return nil if @idempotency_key.blank?
 
       "#{@idempotency_key}:#{skill_name}"
+    end
+
+    def entity_value(key)
+      @entities[key]
     end
 
     def affirmative?

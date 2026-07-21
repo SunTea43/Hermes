@@ -144,7 +144,7 @@ Estructura del estado:
 META_WHATSAPP_ACCESS_TOKEN=EAA...
 META_WHATSAPP_PHONE_NUMBER_ID=1234567890
 META_WHATSAPP_APP_SECRET=xxxxxxxx
-META_WHATSAPP_VERIFY_TOKEN=un-token-que-vos-elegis
+META_WHATSAPP_VERIFY_TOKEN=un-token-que-tu-elijas
 ```
 
 ### Webhook en Meta Developer Console

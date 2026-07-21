@@ -12,6 +12,14 @@ class Business < ApplicationRecord
     through: :role_assignments,
     source: :user
 
+  # Integer-backed enum. :inherit (2) means use global config/whatsapp.yml agent.default.
+  # Key is :inherit (not :default) to avoid colliding with ActiveRecord's default APIs.
+  enum :whatsapp_agent, {
+    regex: 0,
+    llm: 1,
+    inherit: 2
+  }, validate: true
+
   validates :owner_id, allow_nil: true,
     numericality: { only_integer: true },
     if: -> { owner_id.present? }
@@ -20,6 +28,14 @@ class Business < ApplicationRecord
   after_save :sync_owner_role_assignment!, if: :saved_change_to_owner_id?
 
   scope :whatsapp_enabled, -> { where(whatsapp_enabled: true) }
+
+  def resolved_whatsapp_agent
+    inherit? ? WhatsappBot::Config.agent_default.to_s : whatsapp_agent
+  end
+
+  def llm_whatsapp_agent?
+    resolved_whatsapp_agent == "llm"
+  end
 
   private
 
