@@ -85,15 +85,18 @@ module WhatsappBot
           end
 
           catalog = catalog_names
+          caption = ref[:caption].presence || @inbound.body.presence
           interpretation = MultimodalInterpreter.call(
             file_path: tempfile.path,
             mime_type: ref[:mime_type],
-            caption: ref[:caption].presence || @inbound.body.presence,
+            caption: caption,
             catalog_names: catalog,
             client: @vision_client
           )
+          # Photo supplies line items; compra vs venta comes from caption or a follow-up message.
+          interpretation = ImageOrderKind.normalize(interpretation, caption: caption)
           guarded = ConfidenceGuard.call(interpretation)
-          body = ref[:caption].presence || @inbound.body.to_s
+          body = caption.to_s
 
           success(
             body,

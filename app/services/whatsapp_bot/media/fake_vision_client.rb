@@ -17,10 +17,7 @@ module WhatsappBot
           catalog_names: catalog_names
         }
 
-        payload = @response.deep_dup
-        if caption.to_s.match?(/venta|vend[ií]/i)
-          payload = sale_response
-        end
+        payload = response_for_caption(caption)
 
         Interpretation.new(
           intent: payload["intent"],
@@ -32,7 +29,34 @@ module WhatsappBot
 
       private
 
+      def response_for_caption(caption)
+        text = caption.to_s
+        return sale_response if text.match?(/venta|vend[ií]/i)
+        return purchase_response if text.match?(/compra|compr[eé]|recib[ií]/i)
+
+        @response.deep_dup
+      end
+
       def default_response
+        {
+          "intent" => "clarify",
+          "entities" => {
+            "supplier_name" => nil,
+            "customer_name" => nil,
+            "items" => [
+              {
+                "product_name" => "arroz",
+                "quantity" => 50,
+                "unit" => "kg",
+                "unit_price" => 2000
+              }
+            ]
+          },
+          "confidence" => 0.91
+        }
+      end
+
+      def purchase_response
         {
           "intent" => "purchase",
           "entities" => {
@@ -41,6 +65,7 @@ module WhatsappBot
               {
                 "product_name" => "arroz",
                 "quantity" => 50,
+                "unit" => "kg",
                 "unit_price" => 2000
               }
             ]
@@ -58,7 +83,9 @@ module WhatsappBot
             "items" => [
               {
                 "product_name" => "arroz",
-                "quantity" => 10
+                "quantity" => 10,
+                "unit" => "kg",
+                "unit_price" => nil
               }
             ]
           },

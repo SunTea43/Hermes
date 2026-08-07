@@ -54,6 +54,7 @@ module WhatsappBot
       when :sale then SaleHandler.new(@user, @message, @session, state, **handler_kwargs)
       when :purchase then PurchaseHandler.new(@user, @message, @session, state, **handler_kwargs)
       when :payment then PaymentHandler.new(@user, @message, @session, state, **handler_kwargs)
+      when :media_order then ImageOrderHandler.new(@user, @message, @session, state, **handler_kwargs)
       else
         @session.clear
         handler_for_message
@@ -63,6 +64,8 @@ module WhatsappBot
     def handler_for_message
       if @interpretation
         interpretation = persist_interpretation(@interpretation)
+        return image_order_handler(interpretation) if image_order_needs_kind?(interpretation)
+
         handler_for_intent(interpretation.intent, entities: interpretation.entities)
       elsif @business.llm_whatsapp_agent?
         interpretation = interpret_message
@@ -70,6 +73,25 @@ module WhatsappBot
       else
         regex_handler_for_message
       end
+    end
+
+    def image_order_needs_kind?(interpretation)
+      return false unless interpretation.raw.to_h.stringify_keys["source"] == "image"
+      return false unless %i[clarify unknown].include?(interpretation.intent)
+
+      items = Array(interpretation.entities[:items]).presence
+      items ||= [ interpretation.entities ] if interpretation.entities[:product_name].present?
+      Array(items).any? { |item| item.to_h.with_indifferent_access[:product_name].present? }
+    end
+
+    def image_order_handler(interpretation)
+      ImageOrderHandler.new(
+        @user,
+        @message,
+        @session,
+        {},
+        **handler_kwargs.merge(entities: interpretation.entities)
+      )
     end
 
     def interpret_message

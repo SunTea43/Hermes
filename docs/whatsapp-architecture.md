@@ -235,8 +235,12 @@ Usuario → Sí
 Bot     → ✅ COM-xxx registrada. ...
 
 # Imagen (foto de nota / factura / pizarra)
-Usuario → 📷 [foto de lista] + caption opcional "compra de Don Pedro"
-Bot     → Compra a Don Pedro:
+Usuario → 📷 [foto de lista]   # sin caption: la foto aporta ítems
+Bot     → Leí esto de la foto:
+           - Arroz 50kg a $2,000
+           ¿Es *compra* o *venta*?
+Usuario → compra
+Bot     → Compra a Proveedor:
            - ...
            ¿Confirmo? (sí / no) …
 
@@ -353,7 +357,7 @@ Esta fase es la que hace “automático” el flujo: el usuario confirma o ajust
 | Sync vs async | Sync si &lt; ~3s; si no, job + “Procesando tu audio/foto…” |
 | ¿Un solo modelo para imagen+intent? | Sí: multimodal con schema del Interpreter; evitar OCR crudo + segundo LLM salvo fallback |
 | ¿Persistir media? | No en v1; solo metadata en audit. Active Storage solo si hay requisito de evidencia |
-| Caption + media | Caption manda contexto (proveedor/cliente); la media aporta ítems |
+| Caption + media | La foto aporta ítems/precios; compra vs venta se confirma por chat (o caption claro). Confirmaciones también por mensajes |
 | Documentos PDF | Fuera de v1; mismo hook `download_media` deja la puerta abierta |
 
 ### Criterios de aceptación (v1)

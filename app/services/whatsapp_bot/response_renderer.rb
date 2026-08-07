@@ -86,6 +86,20 @@ module WhatsappBot
         'No entendí. Ejemplo: "Vendí 10kg de arroz" o "Vendí 10kg arroz y 5lt aceite".'
       end
 
+      def image_order_ask_kind(items:, repeat: false)
+        intro = repeat ? "No entendí. Responde *compra* o *venta*." : "Leí esto de la foto:"
+        <<~MSG.strip
+          #{intro}
+          #{format_vision_item_lines(items)}
+          ¿Es *compra* o *venta*?
+          También puedes escribir *cancelar*.
+        MSG
+      end
+
+      def image_order_empty
+        "No pude sacar productos claros de la foto. Intenta con otra imagen más nítida o escribe la orden."
+      end
+
       def product_not_found(name, in_inventory: true)
         suffix = in_inventory ? " en tu inventario" : ""
         "No encontré el producto \"#{name}\"#{suffix}."
@@ -172,6 +186,7 @@ module WhatsappBot
         case kind.to_sym
         when :sale then "Venta cancelada."
         when :purchase then "Compra cancelada."
+        when :media_order then "Orden cancelada."
         when :payment then "Pago cancelado."
         else "#{kind} cancelado."
         end
@@ -218,7 +233,7 @@ module WhatsappBot
         when :transcription_failed
           "Hubo un problema al procesar el audio. Intenta de nuevo o escribe el mensaje."
         when :vision_failed
-          "Hubo un problema al leer la foto. Intenta de nuevo, agrega un caption o escribe el mensaje."
+          "No pude leer la foto. Prueba con otra imagen más nítida o escribe la orden."
         when :media_too_large
           "El archivo es demasiado grande. Envía un archivo más liviano o escribe el mensaje."
         when :unsupported_media
@@ -240,6 +255,22 @@ module WhatsappBot
         end
       end
 
+
+      def format_vision_item_lines(items)
+        Array(items).filter_map { |item|
+          item = item.to_h.with_indifferent_access
+          name = item[:product_name].presence
+          next if name.blank?
+
+          qty = item[:quantity]
+          unit = item[:unit].presence || item[:unit_measure].presence
+          price = item[:unit_price]
+          bits = [ "- #{name}" ]
+          bits << "#{format_qty(qty)}#{unit}" if qty.present?
+          bits << "a $#{format_money(price)}" if price.present?
+          bits.join(" ")
+        }.join("\n").presence || "- (sin detalle)"
+      end
 
       def format_cart_lines(items)
         Array(items).map { |item|

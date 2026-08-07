@@ -32,6 +32,32 @@ module WhatsappBot
       }
     }.freeze
 
+    # Presets for multimodal image interpretation (chat/completions with image_url).
+    # Do NOT reuse agent_model: text models (e.g. gpt-oss-20b) are invalid for vision.
+    VISION_PROVIDER_PRESETS = {
+      "openai" => {
+        "base_url" => "https://api.openai.com/v1",
+        "api_key_env" => "OPENAI_API_KEY",
+        "model" => "gpt-4o-mini",
+        "response_format" => "json_schema"
+      },
+      # Only if your Groq account exposes a vision model (many free tiers do not).
+      "groq" => {
+        "base_url" => "https://api.groq.com/openai/v1",
+        "api_key_env" => "GROQ_API_KEY",
+        "model" => "meta-llama/llama-4-scout-17b-16e-instruct",
+        "response_format" => "json_object"
+      },
+      # Google AI Studio free tier (OpenAI-compatible endpoint).
+      # Prefer *-latest / 3.1 flash-lite: gemini-2.0-flash often has free-tier limit 0 for new keys.
+      "gemini" => {
+        "base_url" => "https://generativelanguage.googleapis.com/v1beta/openai",
+        "api_key_env" => "GEMINI_API_KEY",
+        "model" => "gemini-flash-lite-latest",
+        "response_format" => "json_object"
+      }
+    }.freeze
+
     class << self
       def settings
         @settings ||= load!
@@ -182,12 +208,51 @@ module WhatsappBot
         ENV[media_stt_api_key_env].to_s.presence
       end
 
+      def media_vision_settings
+        raw = media_settings[:vision]
+        return raw.with_indifferent_access if raw.is_a?(Hash)
+
+        # Legacy: media.vision: openai + media.vision_model: gpt-4o-mini
+        {
+          "provider" => raw.presence || "openai",
+          "model" => media_settings[:vision_model]
+        }.with_indifferent_access
+      end
+
+      # :fake | :openai | :groq
       def media_vision
-        media_settings.fetch("vision", "openai").to_sym
+        (media_vision_settings[:provider].presence || "openai").to_sym
       end
 
       def media_vision_model
-        media_settings.fetch("vision_model", agent_model).to_s
+        media_vision_settings[:model].presence ||
+          vision_preset.fetch("model", "gpt-4o-mini")
+      end
+
+      def media_vision_base_url
+        media_vision_settings[:base_url].presence ||
+          vision_preset["base_url"].presence ||
+          "https://api.openai.com/v1"
+      end
+
+      def media_vision_api_key_env
+        (
+          media_vision_settings[:api_key_env].presence ||
+          vision_preset["api_key_env"].presence ||
+          "OPENAI_API_KEY"
+        ).to_s
+      end
+
+      def media_vision_api_key
+        ENV[media_vision_api_key_env].to_s.presence
+      end
+
+      def media_vision_response_format
+        (
+          media_vision_settings[:response_format].presence ||
+          vision_preset["response_format"].presence ||
+          "json_schema"
+        ).to_sym
       end
 
       private
@@ -198,6 +263,10 @@ module WhatsappBot
 
       def llm_preset
         LLM_PROVIDER_PRESETS.fetch(agent_llm_provider.to_s, {})
+      end
+
+      def vision_preset
+        VISION_PROVIDER_PRESETS.fetch(media_vision.to_s, {})
       end
 
       def load!

@@ -31,6 +31,20 @@ class WhatsappBot::ConfigSttTest < ActiveSupport::TestCase
     end
   end
 
+  test "vision does not fall back to text agent model" do
+    WhatsappBot::Config.with_settings(
+      "agent" => { "llm_provider" => "groq", "model" => "openai/gpt-oss-20b" },
+      "media" => {
+        "vision" => { "provider" => "openai" }
+      }
+    ) do
+      assert_equal :openai, WhatsappBot::Config.media_vision
+      assert_equal "gpt-4o-mini", WhatsappBot::Config.media_vision_model
+      assert_equal "OPENAI_API_KEY", WhatsappBot::Config.media_vision_api_key_env
+      assert_equal :json_schema, WhatsappBot::Config.media_vision_response_format
+    end
+  end
+
   test "legacy transcriber key still selects fake" do
     WhatsappBot::Config.with_settings(
       "media" => {
