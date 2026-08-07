@@ -6,17 +6,31 @@ module WhatsappBot
 
       class << self
         def interpreter(version = "interpreter_v1")
-          cache[version.to_s] ||= load!(version.to_s)
+          key = version.to_s
+          return cache[key] ||= load!(key) unless Rails.env.development?
+
+          path = PROMPTS_DIR.join("#{key}.yml")
+          mtime = path.exist? ? path.mtime.to_f : 0.0
+          if cache[key].nil? || mtimes[key] != mtime
+            mtimes[key] = mtime
+            cache[key] = load!(key)
+          end
+          cache[key]
         end
 
         def reload!
           @cache = {}
+          @mtimes = {}
         end
 
         private
 
         def cache
           @cache ||= {}
+        end
+
+        def mtimes
+          @mtimes ||= {}
         end
 
         def load!(version)
