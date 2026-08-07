@@ -44,7 +44,9 @@ gem "kamal", require: false
 gem "thruster", require: false
 
 # Use Active Storage variants [https://guides.rubyonrails.org/active_storage_overview.html#transforming-images]
+# image_processing 2.x needs an explicit processor gem; Rails 8.1.3.1 loads Vips at boot.
 gem "image_processing", "~> 2.0"
+gem "ruby-vips", "~> 2.0"
 
 group :development, :test do
   # See https://guides.rubyonrails.org/debugging_rails_applications.html#debugging-with-the-debug-gem
