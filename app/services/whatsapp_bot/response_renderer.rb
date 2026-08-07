@@ -36,7 +36,12 @@ module WhatsappBot
       end
 
       def sale_ask_payment_condition(customer_name:)
-        "Venta a #{customer_name}. ¿Contado o crédito?"
+        <<~MSG.strip
+          Venta a #{customer_name}. ¿Cómo paga?
+          * Contado
+          * Crédito
+          O escribe *cancelar* para anular la operación.
+        MSG
       end
 
       def sale_cart(items:, total: nil)
@@ -120,7 +125,7 @@ module WhatsappBot
       end
 
       def purchase_parse_error
-        'No entendí. Ejemplo: "Recibí de Juanito: arroz 50kg a $2,000" o agrega varios productos y escribe *listo*.'
+        'No entendí. Ejemplos: "Compré a Juanito 50kg de arroz a $2000", "Recibí de Juanito: arroz 50kg a $2000" o "Compré 10kg de arroz".'
       end
 
       def payment_confirm(customer_name:, remaining:, reference_number:, amount:, new_balance:)
@@ -173,11 +178,16 @@ module WhatsappBot
       end
 
       def confirm_yes_no
-        "Responde 'sí' para confirmar, 'no'/'cancelar' para cancelar, o edita el borrador (quitar / cambiar precio)."
+        "Responde 'sí' para confirmar, 'no'/'cancelar' para cancelar, o edita el borrador (agregar producto / quitar / cambiar precio)."
       end
 
       def ask_cash_or_credit
-        "Responde 'contado' o 'crédito'."
+        <<~MSG.strip
+          Responde con una opción:
+          * Contado
+          * Crédito
+          O escribe *cancelar* para anular la operación.
+        MSG
       end
 
       def skill_error(action, errors)
@@ -214,7 +224,7 @@ module WhatsappBot
       private
 
       def draft_review_hints(kind:)
-        base = "También puedes: quitar <producto>, cambiar precio <producto> <monto>, cancelar"
+        base = "También puedes: agregar productos (ej. 5kg aceite), quitar <producto>, cambiar precio <producto> <monto>, cancelar"
         case kind.to_sym
         when :purchase then "#{base}, proveedor <nombre>"
         when :sale then "#{base}, cliente <nombre>"

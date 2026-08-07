@@ -84,6 +84,12 @@ module WhatsappBot
     end
 
     def handle_customer_step
+      if negative?
+        @session.clear
+        reply(ResponseRenderer.cancelled(:sale))
+        return
+      end
+
       draft = @state[:draft]
       draft[:customer_name] = @message.strip.presence || "venta general"
       @session.set(intent: :sale, step: :awaiting_payment_condition, draft: draft)
@@ -91,6 +97,12 @@ module WhatsappBot
     end
 
     def handle_payment_condition_step
+      if negative?
+        @session.clear
+        reply(ResponseRenderer.cancelled(:sale))
+        return
+      end
+
       draft = @state[:draft]
       condition = normalize_payment_condition(@message)
       unless condition
@@ -117,6 +129,15 @@ module WhatsappBot
       end
 
       unless affirmative?
+        # Permitir corregir el borrador agregando productos faltantes.
+        added = resolve_line_items(parse_sale_line_specs(@message))
+        if added.present?
+          draft[:items] = merge_items(draft[:items], added)
+          @session.set(intent: :sale, step: :awaiting_confirmation, draft: draft)
+          reply(confirm_message(draft))
+          return
+        end
+
         reply(ResponseRenderer.confirm_yes_no)
         return
       end
@@ -212,6 +233,7 @@ module WhatsappBot
 
     def parse_sale_line_specs(message)
       text = message.to_s.sub(/\A\s*(vend[ií]|venta|fiado|crédito|credito)\b[:\s]*/i, "")
+      text = text.sub(/\A\s*(también|tambien|agrega(?:r)?|añade|añadir|suma(?:r)?|y)\b[:\s]*/i, "")
       segments = text.split(/\s+y\s+|,\s*/i).map(&:strip).reject(&:blank?)
       segments.filter_map { |segment| parse_sale_segment(segment) }
     end
@@ -269,7 +291,7 @@ module WhatsappBot
     end
 
     def normalize_payment_condition(value)
-      text = value.to_s.strip.downcase
+      text = value.to_s.strip.downcase.gsub("*", "").strip
       return "credit" if text.match?(/cr[eé]dito|credit|fiado/)
       return "cash" if text.match?(/contado|cash|efectivo/)
 
