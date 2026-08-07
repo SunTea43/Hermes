@@ -1,5 +1,7 @@
 require "net/http"
 require "openssl"
+require "json"
+require "tempfile"
 
 module WhatsappBot
   module Providers
@@ -86,6 +88,17 @@ module WhatsappBot
         JSON.parse(response.body)
       end
 
+      def download_media(media_ref)
+        ref = Media::Normalize.call(media_ref)
+        raise "Meta media id missing" if ref[:id].blank?
+
+        meta = get_json("#{graph_base_url}/#{ref[:id]}", headers: auth_headers)
+        download_url = meta["url"].presence
+        raise "Meta media URL missing for #{ref[:id]}" if download_url.blank?
+
+        download_to_tempfile(download_url, mime_type: ref[:mime_type] || meta["mime_type"])
+      end
+
       private
 
       def graph_base_url
@@ -143,17 +156,70 @@ module WhatsappBot
 
         media = message[type] || {}
         [
-          {
-            id: media["id"],
-            mime_type: media["mime_type"],
-            caption: media["caption"]
-          }.compact
+          Media::Normalize.call(
+            {
+              kind: type,
+              id: media["id"],
+              mime_type: media["mime_type"],
+              caption: media["caption"]
+            },
+            message_type: type
+          )
         ]
       end
 
       def received_at_from(message)
         timestamp = message["timestamp"].to_i
         timestamp.positive? ? Time.zone.at(timestamp) : Time.current
+      end
+
+      def auth_headers
+        { "Authorization" => "Bearer #{access_token}" }
+      end
+
+      def get_json(url, headers: {})
+        uri = URI(url)
+        http = Net::HTTP.new(uri.host, uri.port)
+        http.use_ssl = true
+        request = Net::HTTP::Get.new(uri)
+        headers.each { |key, value| request[key] = value }
+        response = http.request(request)
+        unless response.is_a?(Net::HTTPSuccess)
+          raise "Meta WhatsApp media metadata failed (#{response.code}): #{response.body}"
+        end
+
+        JSON.parse(response.body)
+      end
+
+      def download_to_tempfile(url, mime_type: nil)
+        uri = URI(url)
+        http = Net::HTTP.new(uri.host, uri.port)
+        http.use_ssl = true
+        request = Net::HTTP::Get.new(uri)
+        auth_headers.each { |key, value| request[key] = value }
+        response = http.request(request)
+        unless response.is_a?(Net::HTTPSuccess)
+          raise "Meta WhatsApp media download failed (#{response.code}): #{response.body}"
+        end
+
+        ext = extension_for(mime_type)
+        tempfile = Tempfile.new([ "whatsapp-media", ext ])
+        tempfile.binmode
+        tempfile.write(response.body)
+        tempfile.rewind
+        tempfile
+      end
+
+      def extension_for(mime_type)
+        case mime_type.to_s
+        when "audio/ogg", "audio/opus" then ".ogg"
+        when "audio/mpeg" then ".mp3"
+        when "audio/mp4", "audio/aac" then ".m4a"
+        when "image/jpeg" then ".jpg"
+        when "image/png" then ".png"
+        when "image/webp" then ".webp"
+        else ".bin"
+        end
       end
     end
   end

@@ -16,6 +16,12 @@ default: &default
     model: gpt-4o-mini
     temperature: 0
     confidence_threshold: 0.7
+  media:
+    audio_enabled: true
+    image_enabled: false # multimodal in a follow-up PR
+    max_bytes: 16777216 # 16 MB
+    whisper_model: whisper-1
+    transcriber: openai # openai | fake
 
 development:
   <<: *default
@@ -26,6 +32,12 @@ development:
     model: gpt-4o-mini
     temperature: 0
     confidence_threshold: 0.7
+  media:
+    audio_enabled: true
+    image_enabled: false
+    max_bytes: 16777216
+    whisper_model: whisper-1
+    transcriber: fake
 
 test:
   <<: *default
@@ -37,6 +49,12 @@ test:
     model: gpt-4o-mini
     temperature: 0
     confidence_threshold: 0.7
+  media:
+    audio_enabled: true
+    image_enabled: false
+    max_bytes: 16777216
+    whisper_model: whisper-1
+    transcriber: fake
 
 production:
   <<: *default

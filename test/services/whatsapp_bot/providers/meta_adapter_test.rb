@@ -98,6 +98,42 @@ class WhatsappBot::Providers::MetaAdapterTest < ActiveSupport::TestCase
     assert_equal "Confirmar", inbound.body
   end
 
+  test "parse_inbound extracts audio media without caption" do
+    payload = {
+      "entry" => [
+        {
+          "changes" => [
+            {
+              "value" => {
+                "metadata" => { "display_phone_number" => "15551234567" },
+                "messages" => [
+                  {
+                    "from" => "573000000001",
+                    "id" => "wamid.AUDIO",
+                    "timestamp" => "1710000000",
+                    "type" => "audio",
+                    "audio" => {
+                      "id" => "MEDIA123",
+                      "mime_type" => "audio/ogg; codecs=opus"
+                    }
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
+
+    inbound = @adapter.parse_inbound(FakeRequest.new(params: payload, raw_post: payload.to_json))
+
+    assert_equal "", inbound.body
+    assert_equal 1, inbound.media.size
+    assert_equal "audio", inbound.media.first[:kind]
+    assert_equal "MEDIA123", inbound.media.first[:id]
+    assert_equal "audio/ogg; codecs=opus", inbound.media.first[:mime_type]
+  end
+
   test "verify_subscription returns challenge when token matches" do
     ENV["META_WHATSAPP_VERIFY_TOKEN"] = "verify-token"
     request = FakeRequest.new(

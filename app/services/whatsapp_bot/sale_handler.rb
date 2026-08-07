@@ -68,6 +68,10 @@ module WhatsappBot
         return
       end
 
+      if handle_draft_command!(draft, step: :collecting_items)
+        return
+      end
+
       added = resolve_line_items(parse_sale_line_specs(@message))
       if added.empty?
         reply(ResponseRenderer.sale_parse_error)
@@ -108,8 +112,17 @@ module WhatsappBot
         return
       end
 
+      if handle_draft_command!(draft, step: :awaiting_confirmation)
+        return
+      end
+
       unless affirmative?
         reply(ResponseRenderer.confirm_yes_no)
+        return
+      end
+
+      if Array(draft[:items]).blank?
+        reply(ResponseRenderer.sale_parse_error)
         return
       end
 
@@ -136,6 +149,41 @@ module WhatsappBot
         items: result.data[:items],
         total: result.data[:total]
       ))
+    end
+
+    def handle_draft_command!(draft, step:)
+      command = DraftCommands.parse(@message)
+      return false unless command
+      return false if command[:action] == :set_supplier
+
+      status, updated = DraftCommands.apply(draft, command)
+      case status
+      when :ok
+        if Array(updated[:items]).blank?
+          @session.clear
+          reply(ResponseRenderer.cancelled(:sale))
+          return true
+        end
+
+        @session.set(intent: :sale, step: step, draft: updated)
+        if step == :awaiting_confirmation && updated[:customer_name].present? && updated[:payment_condition].present?
+          reply(confirm_message(updated))
+        elsif step == :awaiting_confirmation && updated[:customer_name].present?
+          @session.set(intent: :sale, step: :awaiting_payment_condition, draft: updated)
+          reply(ResponseRenderer.sale_ask_payment_condition(customer_name: updated[:customer_name]))
+        else
+          reply(ResponseRenderer.sale_cart(items: updated[:items]))
+        end
+        true
+      when :not_found
+        reply(ResponseRenderer.draft_item_not_found(command[:query]))
+        true
+      when :invalid
+        reply(ResponseRenderer.draft_edit_invalid)
+        true
+      else
+        false
+      end
     end
 
     def confirm_message(draft)

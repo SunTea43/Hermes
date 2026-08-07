@@ -58,6 +58,30 @@ module WhatsappBot
         agent_settings.fetch("confidence_threshold", 0.7).to_f
       end
 
+      def media_settings
+        settings.fetch("media", {})
+      end
+
+      def media_audio_enabled?
+        ActiveModel::Type::Boolean.new.cast(media_settings.fetch("audio_enabled", false))
+      end
+
+      def media_image_enabled?
+        ActiveModel::Type::Boolean.new.cast(media_settings.fetch("image_enabled", false))
+      end
+
+      def media_max_bytes
+        media_settings.fetch("max_bytes", 16.megabytes).to_i
+      end
+
+      def media_whisper_model
+        media_settings.fetch("whisper_model", "whisper-1").to_s
+      end
+
+      def media_transcriber
+        media_settings.fetch("transcriber", "openai").to_sym
+      end
+
       private
 
 

@@ -29,8 +29,12 @@ module WhatsappBot
         items: items
       }
 
-      @session.set(intent: :purchase, step: :collecting_items, draft: draft)
-      reply(ResponseRenderer.purchase_cart(items: draft[:items], supplier_name: draft[:supplier_name]))
+      # Prefer confirm-first so voice notes / rich parses only need sí/editar/cancelar.
+      @session.set(intent: :purchase, step: :awaiting_confirmation, draft: draft)
+      reply(ResponseRenderer.purchase_confirm(
+        supplier_name: draft[:supplier_name],
+        items: draft[:items]
+      ))
     end
 
     def handle_collecting_items
@@ -48,6 +52,10 @@ module WhatsappBot
       if negative?
         @session.clear
         reply(ResponseRenderer.cancelled(:purchase))
+        return
+      end
+
+      if handle_draft_command!(draft, step: :collecting_items)
         return
       end
 
@@ -71,8 +79,29 @@ module WhatsappBot
         return
       end
 
+      if handle_draft_command!(draft, step: :awaiting_confirmation)
+        return
+      end
+
       unless affirmative?
+        # Allow appending more items while reviewing.
+        added = resolve_line_items(parse_purchase_line_specs(@message))
+        if added.present?
+          draft[:items] = merge_items(draft[:items], added)
+          @session.set(intent: :purchase, step: :awaiting_confirmation, draft: draft)
+          reply(ResponseRenderer.purchase_confirm(
+            supplier_name: draft[:supplier_name],
+            items: draft[:items]
+          ))
+          return
+        end
+
         reply(ResponseRenderer.confirm_yes_no)
+        return
+      end
+
+      if Array(draft[:items]).blank?
+        reply(ResponseRenderer.purchase_parse_error)
         return
       end
 
@@ -98,6 +127,44 @@ module WhatsappBot
         items: result.data[:items],
         total: result.data[:total]
       ))
+    end
+
+    def handle_draft_command!(draft, step:)
+      command = DraftCommands.parse(@message)
+      return false unless command
+      return false if command[:action] == :set_customer
+
+      status, updated = DraftCommands.apply(draft, command)
+      case status
+      when :ok
+        if Array(updated[:items]).blank?
+          @session.clear
+          reply(ResponseRenderer.cancelled(:purchase))
+          return true
+        end
+
+        @session.set(intent: :purchase, step: step, draft: updated)
+        if step == :awaiting_confirmation
+          reply(ResponseRenderer.purchase_confirm(
+            supplier_name: updated[:supplier_name],
+            items: updated[:items]
+          ))
+        else
+          reply(ResponseRenderer.purchase_cart(
+            items: updated[:items],
+            supplier_name: updated[:supplier_name]
+          ))
+        end
+        true
+      when :not_found
+        reply(ResponseRenderer.draft_item_not_found(command[:query]))
+        true
+      when :invalid
+        reply(ResponseRenderer.draft_edit_invalid)
+        true
+      else
+        false
+      end
     end
 
     def initial_line_specs

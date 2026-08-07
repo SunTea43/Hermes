@@ -1,0 +1,92 @@
+require "test_helper"
+
+class WhatsappBot::PurchaseHandlerTest < ActiveSupport::TestCase
+  setup do
+    @user = users(:one)
+    @business = businesses(:one)
+    @session = WhatsappBot::Session.new(@user, business: @business)
+    WhatsappBot::Providers::TestAdapter.reset!
+  end
+
+  def draft_with(*extra_items)
+    items = [
+      {
+        product_id: products(:one).id,
+        product_name: "Arroz",
+        quantity: 50,
+        unit_price: 2000,
+        unit_measure: "kg",
+        line_total: 100_000
+      }
+    ]
+    items.concat(extra_items)
+    {
+      intent: :purchase,
+      step: :awaiting_confirmation,
+      draft: {
+        supplier_name: "Juanito",
+        items: items
+      }
+    }
+  end
+
+  test "initial purchase goes to confirmation" do
+    WhatsappBot::PurchaseHandler.new(
+      @user,
+      "Recibí de Juanito: arroz 50kg a $2000",
+      @session,
+      {},
+      business: @business
+    ).call
+
+    delivered = WhatsappBot::Providers::TestAdapter.deliveries.last
+    assert_match(/Compra a Juanito/, delivered.body)
+    assert_match(/¿Confirmo\?/, delivered.body)
+    assert_match(/quitar/, delivered.body)
+  end
+
+  test "cancel clears session without creating purchase" do
+    assert_no_difference "PurchaseOrder.count" do
+      WhatsappBot::PurchaseHandler.new(
+        @user,
+        "cancelar",
+        @session,
+        draft_with,
+        business: @business
+      ).call
+    end
+
+    assert_equal "Compra cancelada.", WhatsappBot::Providers::TestAdapter.deliveries.last.body
+  end
+
+  test "quitar updates draft and asks confirmation again" do
+    aceite = @business.products.create!(
+      name: "Aceite",
+      unit_measure: "lt",
+      status: "active"
+    )
+    state = draft_with(
+      {
+        product_id: aceite.id,
+        product_name: "Aceite",
+        quantity: 10,
+        unit_price: 8000,
+        unit_measure: "lt",
+        line_total: 80_000
+      }
+    )
+
+    WhatsappBot::PurchaseHandler.new(
+      @user,
+      "quitar aceite",
+      @session,
+      state,
+      business: @business
+    ).call
+
+    delivered = WhatsappBot::Providers::TestAdapter.deliveries.last
+    assert_match(/Arroz/, delivered.body)
+    assert_match(/¿Confirmo\?/, delivered.body)
+    assert_no_match(/Aceite/, delivered.body)
+  end
+end
