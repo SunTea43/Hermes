@@ -14,14 +14,18 @@ flowchart TD
   U[Usuario WhatsApp] --> Prov[Meta / Twilio]
   Prov -->|GET/POST /webhooks/whatsapp/:provider| WH[WebhooksController]
   WH -->|firma + InboundMessage| Auth[Auth + BusinessResolver]
-  Auth --> D[DispatchService]
-  D -->|sesión o regex/LLM| H{Handler}
+  Auth --> Prep[Media::PrepareMessage]
+  Prep --> D[DispatchService]
+  D -->|sesión o regex/LLM/imagen| H{Handler}
   H --> Sale[SaleHandler]
   H --> Purchase[PurchaseHandler]
+  H --> ImageOrder[ImageOrderHandler]
   H --> Payment[PaymentHandler]
   H --> Inv[InventoryQueryHandler]
   H --> Report[ReportHandler]
   H --> Unknown[UnknownHandler]
+  ImageOrder -->|compra / venta| Sale
+  ImageOrder -->|compra / venta| Purchase
   Sale --> Skills[Skills::Registry]
   Purchase --> Skills
   Payment --> Skills
@@ -120,16 +124,39 @@ Usuario → no
 Bot     → Compra cancelada.
 ```
 
-Pendiente de producto (plan de media): comandos de edición del borrador (`quitar arroz`, `cambiar precio …`) y el atajo confirmar-primero tras audio/foto. Ver [whatsapp-architecture.md](./whatsapp-architecture.md#plan-audio-e-imágenes-para-órdenes-compra--venta).
+En confirmación también puedes editar el borrador: `quitar arroz`, `cambiar precio arroz 1900`, `proveedor …` / `cliente …` (según el tipo de orden).
 
-### Audio e imágenes (planificado)
+### Audio e imágenes
 
-Hoy solo se procesa texto (el caption de una imagen/audio, si viene). El plan es:
+`Media::PrepareMessage` descarga el archivo del proveedor y lo convierte en texto (audio) o en una `interpretation` (imagen) antes del `DispatchService`.
 
-1. **Audio:** transcribir → mismo Interpreter/handlers → borrador → confirmar / editar / cancelar.
-2. **Imagen:** modelo multimodal con el mismo schema de entidades → mismo flujo de revisión.
+#### Nota de voz
 
-Detalle de fases, arquitectura y criterios de aceptación: [whatsapp-architecture.md](./whatsapp-architecture.md#plan-audio-e-imágenes-para-órdenes-compra--venta).
+```text
+Usuario → 🎤 "Recibí de Juanito arroz 50 kilos a dos mil"
+Bot     → Compra a Juanito: … ¿Confirmo? (sí / no)
+Usuario → Sí
+Bot     → ✅ COM-xxx registrada. ...
+```
+
+El audio se transcribe (`media.stt`) y entra al mismo flujo de Interpreter/regex + handlers.
+
+#### Foto de lista / nota
+
+```text
+Usuario → 📷 [foto sin caption]
+Bot     → Leí esto de la foto:
+           - Arroz 50kg a $2,000
+           ¿Es *compra* o *venta*?
+Usuario → compra
+Bot     → Compra a Proveedor: … ¿Confirmo?
+```
+
+- La **foto** aporta productos, cantidades y precios.
+- **Compra vs venta** se confirma por mensaje (o con caption claro: `compra` / `venta`).
+- Luego siguen las confirmaciones y ediciones normales del handler.
+
+Arquitectura y diagramas: [whatsapp-architecture.md](./whatsapp-architecture.md#audio-e-imágenes-para-órdenes-compra--venta).
 
 ### Reporte del día
 
@@ -214,6 +241,21 @@ En `config/whatsapp.yml` → `media.stt`:
 | `fake` | Tests / demo sin API | — | — |
 
 Puedes sobreescribir `model`, `base_url` y `api_key_env` bajo `media.stt` (cualquier API compatible con `/audio/transcriptions`). En development el default es `groq`.
+
+Flags: `media.audio_enabled`, `media.image_enabled`, `media.max_bytes`.
+
+### Visión (fotos)
+
+En `config/whatsapp.yml` → `media.vision`:
+
+| `provider` | Uso | Env key (preset) | Modelo default (preset) |
+| --- | --- | --- | --- |
+| `gemini` | Development / AI Studio | `GEMINI_API_KEY` | `gemini-flash-lite-latest` |
+| `openai` | GPT con visión | `OPENAI_API_KEY` | `gpt-4o-mini` |
+| `groq` | Solo si tu cuenta expone modelos vision | `GROQ_API_KEY` | (ver preset) |
+| `fake` | Tests | — | — |
+
+En development el default es `gemini`. El modelo de visión es **independiente** del modelo de texto del agente (`agent.model`).
 
 ### Webhook en Meta Developer Console
 

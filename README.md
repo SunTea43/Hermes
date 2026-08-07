@@ -30,6 +30,7 @@ Los dueños de pequeños negocios en Latinoamérica llevan sus operaciones en pa
 - Handlers conversacionales con confirmación en escrituras
 - Interpreter LLM opcional por tienda + evals
 - Response renderer determinista
+- Audio (STT) e imágenes (visión) para borradores de compra/venta por WhatsApp
 - Jobs: alerta de stock bajo y recordatorio de cartera
 
 ### Documentación WhatsApp
@@ -48,7 +49,7 @@ Los dueños de pequeños negocios en Latinoamérica llevan sus operaciones en pa
 
 - Skills adicionales: buscar productos, cartera detallada, ajuste de inventario
 - Reportes contables exportables (PDF/Excel) en el portal
-- Audio e imágenes en WhatsApp para armar borradores de compra/venta (STT + multimodal, confirmar/editar/cancelar) — plan en [docs/whatsapp-architecture.md](docs/whatsapp-architecture.md#plan-audio-e-imágenes-para-órdenes-compra--venta)
+- Mejoras de media WhatsApp: progreso async, flags por tienda, evals de visión (detalle en [docs/whatsapp-architecture.md](docs/whatsapp-architecture.md#audio-e-imágenes-para-órdenes-compra--venta))
 
 ---
 
@@ -143,14 +144,16 @@ TWILIO_ACCOUNT_SID=...
 TWILIO_AUTH_TOKEN=...
 TWILIO_WHATSAPP_NUMBER=whatsapp:+...
 
-# LLM + STT (development usa Groq por defecto)
+# LLM + STT (development: Groq por defecto)
 GROQ_API_KEY=...
-# Si agent.llm_provider / media.stt.provider = openai:
+# Visión de fotos (development: Gemini por defecto)
+GEMINI_API_KEY=...
+# Si agent / stt / vision usan openai:
 # OPENAI_API_KEY=...
 ```
 
-En `config/whatsapp.yml`: `agent.llm_provider` y `media.stt.provider` (`groq` | `openai` | `fake`).  
-Ver [docs/whatsapp-agent-switching.md](docs/whatsapp-agent-switching.md) y [docs/whatsapp-bot.md](docs/whatsapp-bot.md).
+En `config/whatsapp.yml`: `agent.llm_provider`, `media.stt.provider` y `media.vision.provider`.  
+Ver [docs/whatsapp-agent-switching.md](docs/whatsapp-agent-switching.md) y [docs/whatsapp-bot.md](docs/whatsapp-bot.md#audio-e-imágenes).
 
 ---
 
@@ -171,6 +174,8 @@ Bot:     "✅ VEN-001 registrada. Stock: ..."
 Usuario: "Recibí de Juanito: arroz 50kg a $2,000"
 Bot:     resumen → ¿Confirmo? → "✅ COM-001 ..."
 ```
+
+También por nota de voz (STT) o foto (visión → ¿compra o venta? → confirmar).
 
 ### WhatsApp — reporte (mensaje)
 
