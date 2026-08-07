@@ -75,7 +75,8 @@ class WhatsappBot::Providers::TwilioAdapterTest < ActiveSupport::TestCase
 
     assert_equal 1, inbound.media.size
     assert_equal "https://example.com/img.jpg", inbound.media.first[:url]
-    assert_equal "image/jpeg", inbound.media.first[:content_type]
+    assert_equal "image/jpeg", inbound.media.first[:mime_type]
+    assert_equal "image", inbound.media.first[:kind]
   end
 
   test "valid_signature? is true when validation is disabled" do

@@ -11,10 +11,8 @@ class WhatsappBot::ResponseRendererTest < ActiveSupport::TestCase
       payment_condition: "cash"
     )
 
-    assert_equal(
-      "Venta a Don Julio: 10kg Arroz = $25000 (contado). ¿Confirmo? (sí/no)",
-      text
-    )
+    assert_includes text, "Venta a Don Julio: 10kg Arroz = $25000 (contado). ¿Confirmo? (sí/no)"
+    assert_includes text, "quitar <producto>"
   end
 
   test "sale recorded with stock snapshot" do
@@ -85,12 +83,11 @@ class WhatsappBot::ResponseRendererTest < ActiveSupport::TestCase
       total: 40_000
     )
 
-    assert_equal <<~MSG.strip, text
-      Venta a Don Julio:
-      - 10kg Arroz = $25000
-      - 2lt Aceite = $15000
-      Total: $40000 (contado). ¿Confirmo? (sí/no)
-    MSG
+    assert_includes text, "Venta a Don Julio:"
+    assert_includes text, "- 10kg Arroz = $25000"
+    assert_includes text, "- 2lt Aceite = $15000"
+    assert_includes text, "Total: $40000 (contado). ¿Confirmo? (sí/no)"
+    assert_includes text, "cliente <nombre>"
   end
 
   test "sale cart asks for more items or done" do

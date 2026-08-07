@@ -34,7 +34,7 @@ module WhatsappBot
             end
 
             order.recalculate_total!
-            inventory_result = PurchaseOrders::RecordInventoryEntryService.call(order, @user)
+            inventory_result = PurchaseOrders::RecordInventoryEntryService.call(order, user: @user)
             raise ActiveRecord::Rollback unless inventory_result.success?
           end
 

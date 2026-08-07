@@ -13,7 +13,14 @@ class WhatsappBot::Prompts::CatalogTest < ActiveSupport::TestCase
     assert_includes prompt.system, "entities.items"
     assert_includes prompt.system, "Vendí 10kg arroz y 5lt aceite"
     assert_equal %w[intent entities confidence], prompt.schema[:required].map(&:to_s)
+    assert_equal false, prompt.schema.dig(:properties, :entities, :additionalProperties)
+    assert_equal false, prompt.schema.dig(
+      :properties, :entities, :properties, :items, :items, :additionalProperties
+    )
+    assert_includes prompt.system, "SIEMPRE debe incluir TODAS estas claves"
+    assert_includes prompt.system, "usa null"
   end
+
 
   test "InterpreterV1 facade exposes constants-like API" do
     assert_equal "interpreter_v1", WhatsappBot::Prompts::InterpreterV1::VERSION

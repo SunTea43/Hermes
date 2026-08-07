@@ -1,3 +1,7 @@
+require "net/http"
+require "tempfile"
+require "uri"
+
 module WhatsappBot
   module Providers
     class TwilioAdapter < Base
@@ -39,6 +43,31 @@ module WhatsappBot
         )
       end
 
+      def download_media(media_ref)
+        ref = Media::Normalize.call(media_ref)
+        raise "Twilio media URL missing" if ref[:url].blank?
+
+        uri = URI(ref[:url])
+        http = Net::HTTP.new(uri.host, uri.port)
+        http.use_ssl = uri.scheme == "https"
+        request = Net::HTTP::Get.new(uri)
+        request.basic_auth(
+          ENV.fetch("TWILIO_ACCOUNT_SID"),
+          ENV.fetch("TWILIO_AUTH_TOKEN")
+        )
+        response = http.request(request)
+        unless response.is_a?(Net::HTTPSuccess)
+          raise "Twilio WhatsApp media download failed (#{response.code}): #{response.body}"
+        end
+
+        ext = File.extname(uri.path).presence || ".bin"
+        tempfile = Tempfile.new([ "whatsapp-media", ext ])
+        tempfile.binmode
+        tempfile.write(response.body)
+        tempfile.rewind
+        tempfile
+      end
+
       private
 
       def client
@@ -53,10 +82,12 @@ module WhatsappBot
         return nil if count <= 0
 
         Array.new(count) do |index|
-          {
-            url: params["MediaUrl#{index}"],
-            content_type: params["MediaContentType#{index}"]
-          }.compact
+          Media::Normalize.call(
+            {
+              url: params["MediaUrl#{index}"],
+              content_type: params["MediaContentType#{index}"]
+            }
+          )
         end
       end
 

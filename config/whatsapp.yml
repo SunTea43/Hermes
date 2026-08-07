@@ -12,20 +12,43 @@ default: &default
   agent:
     # Global default when a business has whatsapp_agent=inherit (2)
     default: regex
-    llm_provider: openai # openai | fake
+    # Interpreter LLM: openai | groq | fake (OpenAI-compatible /chat/completions)
+    llm_provider: openai
     model: gpt-4o-mini
     temperature: 0
     confidence_threshold: 0.7
+    # Optional overrides (otherwise presets apply):
+    # base_url: https://api.openai.com/v1
+    # api_key_env: OPENAI_API_KEY
+  media:
+    audio_enabled: true
+    image_enabled: false # multimodal in a follow-up PR
+    max_bytes: 16777216 # 16 MB
+    # Speech-to-text: openai | groq | fake (OpenAI-compatible /audio/transcriptions)
+    stt:
+      provider: openai
+      model: whisper-1
+      # base_url: https://api.openai.com/v1
+      # api_key_env: OPENAI_API_KEY
 
 development:
   <<: *default
   validate_signatures: false
   agent:
     default: regex
-    llm_provider: fake
-    model: gpt-4o-mini
+    llm_provider: groq
+    # Must support json_schema on Groq (see console.groq.com/docs/structured-outputs)
+    model: openai/gpt-oss-20b
     temperature: 0
     confidence_threshold: 0.7
+    response_format: json_schema
+  media:
+    audio_enabled: true
+    image_enabled: false
+    max_bytes: 16777216
+    stt:
+      provider: groq
+      model: whisper-large-v3-turbo
 
 test:
   <<: *default
@@ -37,6 +60,12 @@ test:
     model: gpt-4o-mini
     temperature: 0
     confidence_threshold: 0.7
+  media:
+    audio_enabled: true
+    image_enabled: false
+    max_bytes: 16777216
+    stt:
+      provider: fake
 
 production:
   <<: *default

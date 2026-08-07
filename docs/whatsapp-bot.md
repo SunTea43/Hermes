@@ -203,6 +203,18 @@ META_WHATSAPP_APP_SECRET=xxxxxxxx
 META_WHATSAPP_VERIFY_TOKEN=un-token-que-tu-elijas
 ```
 
+### Speech-to-text (notas de voz)
+
+En `config/whatsapp.yml` → `media.stt`:
+
+| `provider` | Uso | Env key (preset) | Modelo default |
+| --- | --- | --- | --- |
+| `groq` | Pruebas / tier gratis | `GROQ_API_KEY` | `whisper-large-v3-turbo` |
+| `openai` | OpenAI Whisper | `OPENAI_API_KEY` | `whisper-1` |
+| `fake` | Tests / demo sin API | — | — |
+
+Puedes sobreescribir `model`, `base_url` y `api_key_env` bajo `media.stt` (cualquier API compatible con `/audio/transcriptions`). En development el default es `groq`.
+
 ### Webhook en Meta Developer Console
 
 En [developers.facebook.com](https://developers.facebook.com), configurar el webhook de WhatsApp:

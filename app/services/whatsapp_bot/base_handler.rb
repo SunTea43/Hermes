@@ -37,5 +37,22 @@ module WhatsappBot
     def negative?
       @message.strip.match?(/\A(no|cancelar|cancel|nope)\z/i)
     end
+
+    # Runs a write skill and always clears the draft session afterwards.
+    # On failure or exception, notifies the user that the operation was cancelled.
+    def run_mutating_skill(action_label)
+      result = yield
+      unless result.success?
+        reply(ResponseRenderer.skill_error(action_label, result.errors, cancelled: true))
+        return nil
+      end
+      result
+    rescue StandardError => e
+      Rails.logger.error("[WhatsappBot] #{action_label} failed: #{e.class}: #{e.message}")
+      reply(ResponseRenderer.skill_error(action_label, [ "error interno" ], cancelled: true))
+      nil
+    ensure
+      @session.clear
+    end
   end
 end

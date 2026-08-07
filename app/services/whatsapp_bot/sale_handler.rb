@@ -68,6 +68,10 @@ module WhatsappBot
         return
       end
 
+      if handle_draft_command!(draft, step: :collecting_items)
+        return
+      end
+
       added = resolve_line_items(parse_sale_line_specs(@message))
       if added.empty?
         reply(ResponseRenderer.sale_parse_error)
@@ -80,6 +84,12 @@ module WhatsappBot
     end
 
     def handle_customer_step
+      if negative?
+        @session.clear
+        reply(ResponseRenderer.cancelled(:sale))
+        return
+      end
+
       draft = @state[:draft]
       draft[:customer_name] = @message.strip.presence || "venta general"
       @session.set(intent: :sale, step: :awaiting_payment_condition, draft: draft)
@@ -87,6 +97,12 @@ module WhatsappBot
     end
 
     def handle_payment_condition_step
+      if negative?
+        @session.clear
+        reply(ResponseRenderer.cancelled(:sale))
+        return
+      end
+
       draft = @state[:draft]
       condition = normalize_payment_condition(@message)
       unless condition
@@ -108,34 +124,85 @@ module WhatsappBot
         return
       end
 
+      if handle_draft_command!(draft, step: :awaiting_confirmation)
+        return
+      end
+
       unless affirmative?
+        # Permitir corregir el borrador agregando productos faltantes.
+        added = resolve_line_items(parse_sale_line_specs(@message))
+        if added.present?
+          draft[:items] = merge_items(draft[:items], added)
+          @session.set(intent: :sale, step: :awaiting_confirmation, draft: draft)
+          reply(confirm_message(draft))
+          return
+        end
+
         reply(ResponseRenderer.confirm_yes_no)
         return
       end
 
-      result = Skills::Registry.call(
-        "registrar_venta",
-        user: @user,
-        business: @business,
-        input: {
-          customer_name: draft[:customer_name],
-          payment_condition: draft[:payment_condition],
-          items: draft[:items]
-        },
-        idempotency_key: skill_key("registrar_venta")
-      )
-      @session.clear
-
-      unless result.success?
-        reply(ResponseRenderer.skill_error("registrar la venta", result.errors))
+      if Array(draft[:items]).blank?
+        @session.clear
+        reply(ResponseRenderer.sale_parse_error)
         return
       end
+
+      result = run_mutating_skill("registrar la venta") {
+        Skills::Registry.call(
+          "registrar_venta",
+          user: @user,
+          business: @business,
+          input: {
+            customer_name: draft[:customer_name],
+            payment_condition: draft[:payment_condition],
+            items: draft[:items]
+          },
+          idempotency_key: skill_key("registrar_venta")
+        )
+      }
+      return unless result
 
       reply(ResponseRenderer.sale_recorded(
         reference_number: result.data[:reference_number],
         items: result.data[:items],
         total: result.data[:total]
       ))
+    end
+
+    def handle_draft_command!(draft, step:)
+      command = DraftCommands.parse(@message)
+      return false unless command
+      return false if command[:action] == :set_supplier
+
+      status, updated = DraftCommands.apply(draft, command)
+      case status
+      when :ok
+        if Array(updated[:items]).blank?
+          @session.clear
+          reply(ResponseRenderer.cancelled(:sale))
+          return true
+        end
+
+        @session.set(intent: :sale, step: step, draft: updated)
+        if step == :awaiting_confirmation && updated[:customer_name].present? && updated[:payment_condition].present?
+          reply(confirm_message(updated))
+        elsif step == :awaiting_confirmation && updated[:customer_name].present?
+          @session.set(intent: :sale, step: :awaiting_payment_condition, draft: updated)
+          reply(ResponseRenderer.sale_ask_payment_condition(customer_name: updated[:customer_name]))
+        else
+          reply(ResponseRenderer.sale_cart(items: updated[:items]))
+        end
+        true
+      when :not_found
+        reply(ResponseRenderer.draft_item_not_found(command[:query]))
+        true
+      when :invalid
+        reply(ResponseRenderer.draft_edit_invalid)
+        true
+      else
+        false
+      end
     end
 
     def confirm_message(draft)
@@ -164,6 +231,7 @@ module WhatsappBot
 
     def parse_sale_line_specs(message)
       text = message.to_s.sub(/\A\s*(vend[ií]|venta|fiado|crédito|credito)\b[:\s]*/i, "")
+      text = text.sub(/\A\s*(también|tambien|agrega(?:r)?|añade|añadir|suma(?:r)?|y)\b[:\s]*/i, "")
       segments = text.split(/\s+y\s+|,\s*/i).map(&:strip).reject(&:blank?)
       segments.filter_map { |segment| parse_sale_segment(segment) }
     end
@@ -221,7 +289,7 @@ module WhatsappBot
     end
 
     def normalize_payment_condition(value)
-      text = value.to_s.strip.downcase
+      text = value.to_s.strip.downcase.gsub("*", "").strip
       return "credit" if text.match?(/cr[eé]dito|credit|fiado/)
       return "cash" if text.match?(/contado|cash|efectivo/)
 

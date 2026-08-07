@@ -28,22 +28,38 @@ business.update!(whatsapp_agent: :inherit) # seguir config/whatsapp.yml → agen
 production:
   agent:
     default: regex          # o llm
-    llm_provider: openai    # openai | fake
+    llm_provider: openai    # openai | groq | fake
     model: gpt-4o-mini
     temperature: 0
     confidence_threshold: 0.7
+    # base_url / api_key_env opcionales (si no, usan presets)
 ```
 
 Cuando una tienda tiene `whatsapp_agent: inherit` (2), se usa `agent.default`.
 
+Presets LLM:
+
+| `llm_provider` | Env key | Base URL | Modelo default |
+| --- | --- | --- | --- |
+| `openai` | `OPENAI_API_KEY` | `https://api.openai.com/v1` | `gpt-4o-mini` |
+| `groq` | `GROQ_API_KEY` | `https://api.groq.com/openai/v1` | `openai/gpt-oss-20b` (soporta `json_schema`) |
+| `fake` | — | — | — |
+
+Si usas otro modelo Groq sin structured outputs, pon `agent.response_format: json_object`.
+
+En `development` el default es `groq` (STT + Interpreter). En `test`, `fake`.
+
 ## Variables de entorno (LLM)
 
 ```bash
+# Si agent.llm_provider=openai
 OPENAI_API_KEY=sk-...
-OPENAI_BASE_URL=https://api.openai.com/v1   # opcional; útil para proxies compatibles
+OPENAI_BASE_URL=https://api.openai.com/v1   # opcional
+
+# Si agent.llm_provider=groq (development)
+GROQ_API_KEY=gsk_...
 ```
 
-En `development`/`test`, `llm_provider: fake` evita llamadas reales.
 
 ## Prompt versionado (YAML)
 

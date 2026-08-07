@@ -43,8 +43,10 @@ gem "kamal", require: false
 # Add HTTP asset caching/compression and X-Sendfile acceleration to Puma [https://github.com/basecamp/thruster/]
 gem "thruster", require: false
 
-# Use Active Storage variants [https://guides.rubyonrails.org/active_storage_overview.html#transforming-images]
-gem "image_processing", "~> 2.0"
+# Active Storage variants are disabled (see config/application.rb). Re-enable with:
+# gem "image_processing", "~> 2.0"
+# gem "ruby-vips", "~> 2.0", require: false
+# and config.active_storage.variant_processor = :vips (needs system libvips).
 
 group :development, :test do
   # See https://guides.rubyonrails.org/debugging_rails_applications.html#debugging-with-the-debug-gem

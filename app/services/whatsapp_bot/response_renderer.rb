@@ -36,7 +36,12 @@ module WhatsappBot
       end
 
       def sale_ask_payment_condition(customer_name:)
-        "Venta a #{customer_name}. ¿Contado o crédito?"
+        <<~MSG.strip
+          Venta a #{customer_name}. ¿Cómo paga?
+          * Contado
+          * Crédito
+          O escribe *cancelar* para anular la operación.
+        MSG
       end
 
       def sale_cart(items:, total: nil)
@@ -49,7 +54,7 @@ module WhatsappBot
 
       def sale_confirm(customer_name:, payment_condition:, total: nil, items: nil, quantity: nil, unit_measure: nil, product_name: nil)
         cond_label = payment_condition == "credit" ? "crédito" : "contado"
-        if items.present?
+        body = if items.present?
           <<~MSG.strip
             Venta a #{customer_name}:
             #{format_cart_lines(items)}
@@ -58,6 +63,7 @@ module WhatsappBot
         else
           "Venta a #{customer_name}: #{format_qty(quantity)}#{unit_measure} #{product_name} = $#{format_money(total)} (#{cond_label}). ¿Confirmo? (sí/no)"
         end
+        "#{body}\n#{draft_review_hints(kind: :sale)}"
       end
 
       def sale_recorded(reference_number:, items: nil, product_name: nil, current_quantity: nil, unit_measure: nil, total: nil)
@@ -95,15 +101,16 @@ module WhatsappBot
       end
 
       def purchase_confirm(supplier_name:, items: nil, product_name: nil, quantity: nil, unit_measure: nil, total: nil)
-        if items.present?
+        body = if items.present?
           <<~MSG.strip
             Compra a #{supplier_name}:
             #{format_cart_lines(items)}
-            Total: $#{format_money(cart_total(items, total))}. ¿Confirmo?
+            Total: $#{format_money(cart_total(items, total))}. ¿Confirmo? (sí/no)
           MSG
         else
-          "Compra a #{supplier_name}:\n- #{product_name} #{format_qty(quantity)}#{unit_measure}: $#{format_money(total)}\nTotal: $#{format_money(total)}. ¿Confirmo?"
+          "Compra a #{supplier_name}:\n- #{product_name} #{format_qty(quantity)}#{unit_measure}: $#{format_money(total)}\nTotal: $#{format_money(total)}. ¿Confirmo? (sí/no)"
         end
+        "#{body}\n#{draft_review_hints(kind: :purchase)}"
       end
 
       def purchase_recorded(reference_number:, items: nil, product_name: nil, current_quantity: nil, unit_measure: nil, total: nil)
@@ -118,7 +125,7 @@ module WhatsappBot
       end
 
       def purchase_parse_error
-        'No entendí. Ejemplo: "Recibí de Juanito: arroz 50kg a $2,000" o agrega varios productos y escribe *listo*.'
+        'No entendí. Ejemplos: "Compré a Juanito 50kg de arroz a $2000", "Recibí de Juanito: arroz 50kg a $2000" o "Compré 10kg de arroz".'
       end
 
       def payment_confirm(customer_name:, remaining:, reference_number:, amount:, new_balance:)
@@ -171,18 +178,63 @@ module WhatsappBot
       end
 
       def confirm_yes_no
-        "Responde 'sí' para confirmar o 'no' para cancelar."
+        "Responde 'sí' para confirmar, 'no'/'cancelar' para cancelar, o edita el borrador (agregar producto / quitar / cambiar precio)."
       end
 
       def ask_cash_or_credit
-        "Responde 'contado' o 'crédito'."
+        <<~MSG.strip
+          Responde con una opción:
+          * Contado
+          * Crédito
+          O escribe *cancelar* para anular la operación.
+        MSG
       end
 
-      def skill_error(action, errors)
-        "No pude #{action}: #{Array(errors).join(', ')}"
+      def skill_error(action, errors, cancelled: false)
+        msg = "No pude #{action}: #{Array(errors).join(', ')}"
+        return msg unless cancelled
+
+        "#{msg} Operación cancelada. Puedes intentar de nuevo cuando quieras."
+      end
+
+      def draft_item_not_found(query)
+        "No encontré \"#{query}\" en el borrador."
+      end
+
+      def draft_edit_invalid
+        "No pude aplicar ese cambio. Prueba: quitar arroz | cambiar precio arroz 2000 | cancelar."
+      end
+
+      def media_error(code)
+        case code.to_sym
+        when :audio_disabled
+          "Las notas de voz no están habilitadas para esta tienda. Escribe el mensaje en texto."
+        when :image_not_supported
+          "Aún no proceso fotos. Envía la compra/venta por texto o nota de voz."
+        when :empty_transcription
+          "No pude entender el audio. Intenta de nuevo o escribe el mensaje."
+        when :transcription_failed
+          "Hubo un problema al procesar el audio. Intenta de nuevo o escribe el mensaje."
+        when :media_too_large
+          "El archivo es demasiado grande. Envía un audio más corto o escribe el mensaje."
+        when :unsupported_media
+          "Ese tipo de archivo no está soportado. Usa texto, nota de voz o una foto (próximamente)."
+        else
+          "No pude procesar el archivo. Intenta de nuevo o escribe el mensaje."
+        end
       end
 
       private
+
+      def draft_review_hints(kind:)
+        base = "También puedes: agregar productos (ej. 5kg aceite), quitar <producto>, cambiar precio <producto> <monto>, cancelar"
+        case kind.to_sym
+        when :purchase then "#{base}, proveedor <nombre>"
+        when :sale then "#{base}, cliente <nombre>"
+        else base
+        end
+      end
+
 
       def format_cart_lines(items)
         Array(items).map { |item|

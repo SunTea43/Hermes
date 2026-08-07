@@ -4,20 +4,26 @@ instructions: |
   Eres el intérprete de intenciones de Hermes (bot de WhatsApp para tiendas).
   Tu ÚNICA tarea es convertir el mensaje del usuario en JSON con:
   - intent: uno de sale, purchase, payment, inventory_query, report, unknown, clarify
-  - entities: objeto con datos extraídos (pueden faltar campos)
+  - entities: objeto con datos extraídos
   - confidence: número entre 0 y 1
 
   No inventes datos. Si el mensaje es ambiguo, usa intent=clarify o confidence baja.
   No ejecutes acciones ni redactes respuestas al usuario.
   Entiende español de LatAm (incluido voseo si el usuario lo usa), pero tu salida es solo JSON estructurado.
 
+  IMPORTANTE (schema estricto): entities SIEMPRE debe incluir TODAS estas claves:
+  items, product_name, quantity, unit, unit_price, customer_name, supplier_name, payment_condition, amount.
+  Si un dato no aplica o no aparece en el mensaje, usa null (o [] para items).
+  Nunca omitas claves.
+
   Para ventas y compras con varios productos, usa entities.items como arreglo.
-  Cada ítem puede incluir product_name, quantity, unit, unit_price.
-  customer_name, supplier_name y payment_condition van a nivel raíz de entities cuando apliquen.
+  Cada ítem SIEMPRE incluye: product_name, quantity, unit, unit_price (null si falta).
+  customer_name, supplier_name, payment_condition y amount van a nivel raíz de entities.
+  payment_condition solo puede ser "cash", "credit" o null.
 
 retry_user_template: |
-  Reintenta. Responde SOLO JSON válido.
-  Mensaje: %{message}
+  Reintenta. Responde SOLO JSON válido con TODAS las claves de entities
+  (usa null o [] si no aplican). Mensaje: %{message}
 
 examples:
   - user: Vendí 10kg de arroz
@@ -25,12 +31,18 @@ examples:
       intent: sale
       entities:
         items:
-          - quantity: 10
-            product_name: arroz
+          - product_name: arroz
+            quantity: 10
             unit: kg
-        quantity: 10
+            unit_price: null
         product_name: arroz
+        quantity: 10
         unit: kg
+        unit_price: null
+        customer_name: null
+        supplier_name: null
+        payment_condition: null
+        amount: null
       confidence: 0.92
 
   - user: Vendí 10kg arroz y 5lt aceite a María al contado
@@ -38,14 +50,22 @@ examples:
       intent: sale
       entities:
         items:
-          - quantity: 10
-            product_name: arroz
+          - product_name: arroz
+            quantity: 10
             unit: kg
-          - quantity: 5
-            product_name: aceite
+            unit_price: null
+          - product_name: aceite
+            quantity: 5
             unit: lt
+            unit_price: null
+        product_name: null
+        quantity: null
+        unit: null
+        unit_price: null
         customer_name: María
+        supplier_name: null
         payment_condition: cash
+        amount: null
       confidence: 0.9
 
   - user: Fiado a María 5kg arroz
@@ -53,46 +73,112 @@ examples:
       intent: sale
       entities:
         items:
-          - quantity: 5
-            product_name: arroz
+          - product_name: arroz
+            quantity: 5
             unit: kg
+            unit_price: null
+        product_name: arroz
+        quantity: 5
+        unit: kg
+        unit_price: null
         customer_name: María
+        supplier_name: null
         payment_condition: credit
+        amount: null
       confidence: 0.9
 
   - user: "Recibí de Juanito: arroz 50kg a $2000"
     json:
       intent: purchase
       entities:
-        supplier_name: Juanito
         items:
           - product_name: arroz
             quantity: 50
+            unit: kg
             unit_price: 2000
         product_name: arroz
         quantity: 50
+        unit: kg
         unit_price: 2000
+        customer_name: null
+        supplier_name: Juanito
+        payment_condition: null
+        amount: null
       confidence: 0.91
+
+  - user: Compré 10 kg de arroz
+    json:
+      intent: purchase
+      entities:
+        items:
+          - product_name: arroz
+            quantity: 10
+            unit: kg
+            unit_price: null
+        product_name: arroz
+        quantity: 10
+        unit: kg
+        unit_price: null
+        customer_name: null
+        supplier_name: null
+        payment_condition: null
+        amount: null
+      confidence: 0.92
+
+  - user: Compré a Juanito 50kg de arroz a 2000
+    json:
+      intent: purchase
+      entities:
+        items:
+          - product_name: arroz
+            quantity: 50
+            unit: kg
+            unit_price: 2000
+        product_name: arroz
+        quantity: 50
+        unit: kg
+        unit_price: 2000
+        customer_name: null
+        supplier_name: Juanito
+        payment_condition: null
+        amount: null
+      confidence: 0.93
 
   - user: "Recibí de Juanito: arroz 50kg a $2000 y aceite 20lt a $6000"
     json:
       intent: purchase
       entities:
-        supplier_name: Juanito
         items:
           - product_name: arroz
             quantity: 50
+            unit: kg
             unit_price: 2000
           - product_name: aceite
             quantity: 20
+            unit: lt
             unit_price: 6000
+        product_name: null
+        quantity: null
+        unit: null
+        unit_price: null
+        customer_name: null
+        supplier_name: Juanito
+        payment_condition: null
+        amount: null
       confidence: 0.91
 
   - user: María pagó $10000
     json:
       intent: payment
       entities:
+        items: []
+        product_name: null
+        quantity: null
+        unit: null
+        unit_price: null
         customer_name: María
+        supplier_name: null
+        payment_condition: null
         amount: 10000
       confidence: 0.93
 
@@ -100,19 +186,45 @@ examples:
     json:
       intent: inventory_query
       entities:
+        items: []
         product_name: arroz
+        quantity: null
+        unit: null
+        unit_price: null
+        customer_name: null
+        supplier_name: null
+        payment_condition: null
+        amount: null
       confidence: 0.95
 
   - user: Reporte del día
     json:
       intent: report
-      entities: {}
+      entities:
+        items: []
+        product_name: null
+        quantity: null
+        unit: null
+        unit_price: null
+        customer_name: null
+        supplier_name: null
+        payment_condition: null
+        amount: null
       confidence: 0.96
 
   - user: asdf
     json:
       intent: unknown
-      entities: {}
+      entities:
+        items: []
+        product_name: null
+        quantity: null
+        unit: null
+        unit_price: null
+        customer_name: null
+        supplier_name: null
+        payment_condition: null
+        amount: null
       confidence: 0.2
 
 schema:
@@ -131,7 +243,53 @@ schema:
         - clarify
     entities:
       type: object
-      additionalProperties: true
+      additionalProperties: false
+      properties:
+        items:
+          type: array
+          items:
+            type: object
+            additionalProperties: false
+            properties:
+              product_name:
+                type: ["string", "null"]
+              quantity:
+                type: ["number", "null"]
+              unit:
+                type: ["string", "null"]
+              unit_price:
+                type: ["number", "null"]
+            required:
+              - product_name
+              - quantity
+              - unit
+              - unit_price
+        product_name:
+          type: ["string", "null"]
+        quantity:
+          type: ["number", "null"]
+        unit:
+          type: ["string", "null"]
+        unit_price:
+          type: ["number", "null"]
+        customer_name:
+          type: ["string", "null"]
+        supplier_name:
+          type: ["string", "null"]
+        payment_condition:
+          type: ["string", "null"]
+        amount:
+          type: ["number", "null"]
+      required:
+        - items
+        - product_name
+        - quantity
+        - unit
+        - unit_price
+        - customer_name
+        - supplier_name
+        - payment_condition
+        - amount
     confidence:
       type: number
       minimum: 0

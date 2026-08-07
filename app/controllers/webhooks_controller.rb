@@ -27,7 +27,7 @@ class WebhooksController < ApplicationController
     if user.nil?
       deny_unknown_user(inbound, audit)
     else
-      dispatch_for_user(user, inbound, audit)
+      dispatch_for_user(user, inbound, audit, adapter: adapter)
     end
 
     head :ok
@@ -67,7 +67,7 @@ class WebhooksController < ApplicationController
     WhatsappBot::Sender.deliver(inbound.from, message)
   end
 
-  def dispatch_for_user(user, inbound, audit)
+  def dispatch_for_user(user, inbound, audit, adapter:)
     session = WhatsappBot::Session.new(user)
     resolution = WhatsappBot::BusinessResolver.call(
       user,
@@ -82,9 +82,24 @@ class WebhooksController < ApplicationController
     end
 
     WhatsappBot::AuthorizationGateway.authorize!(user: user, business: resolution.business)
+
+    prepared = WhatsappBot::Media::PrepareMessage.call(
+      inbound: inbound,
+      adapter: adapter,
+      audit: audit
+    )
+    unless prepared.ok?
+      WhatsappBot::Sender.deliver(
+        inbound.from,
+        WhatsappBot::ResponseRenderer.media_error(prepared.error_code),
+        business_id: resolution.business.id
+      )
+      return
+    end
+
     WhatsappBot::DispatchService.call(
       user,
-      inbound.body,
+      prepared.body,
       business: resolution.business,
       audit: audit,
       idempotency_key: inbound.provider_message_id
