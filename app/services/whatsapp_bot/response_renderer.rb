@@ -209,20 +209,25 @@ module WhatsappBot
         case code.to_sym
         when :audio_disabled
           "Las notas de voz no están habilitadas para esta tienda. Escribe el mensaje en texto."
+        when :image_disabled
+          "Las fotos no están habilitadas para esta tienda. Escribe el mensaje o envía una nota de voz."
         when :image_not_supported
           "Aún no proceso fotos. Envía la compra/venta por texto o nota de voz."
         when :empty_transcription
           "No pude entender el audio. Intenta de nuevo o escribe el mensaje."
         when :transcription_failed
           "Hubo un problema al procesar el audio. Intenta de nuevo o escribe el mensaje."
+        when :vision_failed
+          "Hubo un problema al leer la foto. Intenta de nuevo, agrega un caption o escribe el mensaje."
         when :media_too_large
-          "El archivo es demasiado grande. Envía un audio más corto o escribe el mensaje."
+          "El archivo es demasiado grande. Envía un archivo más liviano o escribe el mensaje."
         when :unsupported_media
-          "Ese tipo de archivo no está soportado. Usa texto, nota de voz o una foto (próximamente)."
+          "Ese tipo de archivo no está soportado. Usa texto, nota de voz o una foto."
         else
           "No pude procesar el archivo. Intenta de nuevo o escribe el mensaje."
         end
       end
+
 
       private
 

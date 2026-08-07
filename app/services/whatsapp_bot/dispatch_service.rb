@@ -6,24 +6,26 @@ module WhatsappBot
     INVENTORY_PATTERNS = /\b(cuánto|cuanto|stock|inventario|queda|hay|bajo)\b/i
     REPORT_PATTERNS = /\b(reporte|resumen|ventas del día|ventas de hoy|balance)\b/i
 
-    def self.call(user, message, business:, audit: nil, idempotency_key: nil, llm_client: nil)
+    def self.call(user, message, business:, audit: nil, idempotency_key: nil, llm_client: nil, interpretation: nil)
       new(
         user,
         message,
         business: business,
         audit: audit,
         idempotency_key: idempotency_key,
-        llm_client: llm_client
+        llm_client: llm_client,
+        interpretation: interpretation
       ).call
     end
 
-    def initialize(user, message, business:, audit: nil, idempotency_key: nil, llm_client: nil)
+    def initialize(user, message, business:, audit: nil, idempotency_key: nil, llm_client: nil, interpretation: nil)
       @user = user
       @message = message
       @business = business
       @audit = audit
       @idempotency_key = idempotency_key
       @llm_client = llm_client
+      @interpretation = interpretation
       @session = Session.new(user, business: business)
     end
 
@@ -59,7 +61,10 @@ module WhatsappBot
     end
 
     def handler_for_message
-      if @business.llm_whatsapp_agent?
+      if @interpretation
+        interpretation = persist_interpretation(@interpretation)
+        handler_for_intent(interpretation.intent, entities: interpretation.entities)
+      elsif @business.llm_whatsapp_agent?
         interpretation = interpret_message
         handler_for_intent(interpretation.intent, entities: interpretation.entities)
       else
@@ -69,7 +74,11 @@ module WhatsappBot
 
     def interpret_message
       interpretation = Interpreter.call(@message, client: @llm_client)
-      guarded = ConfidenceGuard.call(interpretation)
+      persist_interpretation(ConfidenceGuard.call(interpretation))
+    end
+
+    def persist_interpretation(interpretation)
+      guarded = interpretation.is_a?(Interpretation) ? ConfidenceGuard.call(interpretation) : interpretation
       @audit&.update!(metadata: (@audit.metadata || {}).merge(
         "interpretation" => guarded.raw,
         "prompt_version" => Prompts::InterpreterV1::VERSION

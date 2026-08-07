@@ -182,6 +182,14 @@ module WhatsappBot
         ENV[media_stt_api_key_env].to_s.presence
       end
 
+      def media_vision
+        media_settings.fetch("vision", "openai").to_sym
+      end
+
+      def media_vision_model
+        media_settings.fetch("vision_model", agent_model).to_s
+      end
+
       private
 
       def stt_preset

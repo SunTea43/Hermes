@@ -22,7 +22,7 @@ default: &default
     # api_key_env: OPENAI_API_KEY
   media:
     audio_enabled: true
-    image_enabled: false # multimodal in a follow-up PR
+    image_enabled: true
     max_bytes: 16777216 # 16 MB
     # Speech-to-text: openai | groq | fake (OpenAI-compatible /audio/transcriptions)
     stt:
@@ -44,7 +44,7 @@ development:
     response_format: json_schema
   media:
     audio_enabled: true
-    image_enabled: false
+    image_enabled: true
     max_bytes: 16777216
     stt:
       provider: groq
@@ -62,7 +62,7 @@ test:
     confidence_threshold: 0.7
   media:
     audio_enabled: true
-    image_enabled: false
+    image_enabled: true
     max_bytes: 16777216
     stt:
       provider: fake

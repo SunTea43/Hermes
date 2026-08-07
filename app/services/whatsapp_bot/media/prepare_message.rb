@@ -1,22 +1,31 @@
 module WhatsappBot
   module Media
     # Turns an inbound WhatsApp message (text and/or media) into a text body
-    # suitable for DispatchService. Audio is transcribed when enabled.
+    # (and optional pre-parsed interpretation) suitable for DispatchService.
     class PrepareMessage
-      Result = Data.define(:ok, :body, :error_code, :metadata) do
+      Result = Data.define(:ok, :body, :error_code, :metadata, :interpretation) do
         def ok? = ok
         def error? = !ok
       end
 
-      def self.call(inbound:, adapter:, audit: nil, transcriber: nil)
-        new(inbound: inbound, adapter: adapter, audit: audit, transcriber: transcriber).call
+      def self.call(inbound:, adapter:, business: nil, audit: nil, transcriber: nil, vision_client: nil)
+        new(
+          inbound: inbound,
+          adapter: adapter,
+          business: business,
+          audit: audit,
+          transcriber: transcriber,
+          vision_client: vision_client
+        ).call
       end
 
-      def initialize(inbound:, adapter:, audit: nil, transcriber: nil)
+      def initialize(inbound:, adapter:, business: nil, audit: nil, transcriber: nil, vision_client: nil)
         @inbound = inbound
         @adapter = adapter
+        @business = business
         @audit = audit
         @transcriber = transcriber
+        @vision_client = vision_client
       end
 
       def call
@@ -28,7 +37,7 @@ module WhatsappBot
         when "audio"
           prepare_audio(ref)
         when "image"
-          prepare_image_placeholder(ref)
+          prepare_image(ref)
         else
           caption_or_unsupported(ref)
         end
@@ -64,9 +73,45 @@ module WhatsappBot
         failure(:transcription_failed, media_meta(ref).merge("error" => e.message))
       end
 
-      def prepare_image_placeholder(ref)
-        # Images are handled in a follow-up PR (multimodal). Caption still works.
-        caption_fallback(ref, :image_not_supported)
+      def prepare_image(ref)
+        unless WhatsappBot::Config.media_image_enabled?
+          return caption_fallback(ref, :image_disabled)
+        end
+
+        tempfile = @adapter.download_media(ref)
+        begin
+          if File.size(tempfile.path) > WhatsappBot::Config.media_max_bytes
+            return failure(:media_too_large, media_meta(ref))
+          end
+
+          catalog = catalog_names
+          interpretation = MultimodalInterpreter.call(
+            file_path: tempfile.path,
+            mime_type: ref[:mime_type],
+            caption: ref[:caption].presence || @inbound.body.presence,
+            catalog_names: catalog,
+            client: @vision_client
+          )
+          guarded = ConfidenceGuard.call(interpretation)
+          body = ref[:caption].presence || @inbound.body.to_s
+
+          success(
+            body,
+            media_meta(ref).merge(
+              "vision_intent" => guarded.intent.to_s,
+              "vision_confidence" => guarded.confidence
+            ),
+            interpretation: guarded
+          )
+        ensure
+          cleanup_tempfile(tempfile)
+        end
+      rescue StandardError => e
+        Rails.logger.error("[WhatsappBot::Media::PrepareMessage] image failed: #{e.class}: #{e.message}")
+        caption = ref[:caption].presence || @inbound.body.presence
+        return success(caption, media_meta(ref).merge("vision_error" => e.message)) if caption.present?
+
+        failure(:vision_failed, media_meta(ref).merge("error" => e.message))
       end
 
       def caption_or_unsupported(ref)
@@ -80,14 +125,26 @@ module WhatsappBot
         failure(error_when_blank, media_meta(ref))
       end
 
-      def success(body, metadata = {})
+      def success(body, metadata = {}, interpretation: nil)
         merge_audit(metadata)
-        Result.new(ok: true, body: body.to_s, error_code: nil, metadata: metadata)
+        if interpretation
+          merge_audit(
+            "interpretation" => interpretation.raw,
+            "prompt_version" => Prompts::InterpreterV1::VERSION
+          )
+        end
+        Result.new(
+          ok: true,
+          body: body.to_s,
+          error_code: nil,
+          metadata: metadata,
+          interpretation: interpretation
+        )
       end
 
       def failure(code, metadata = {})
         merge_audit(metadata.merge("media_error" => code.to_s))
-        Result.new(ok: false, body: "", error_code: code, metadata: metadata)
+        Result.new(ok: false, body: "", error_code: code, metadata: metadata, interpretation: nil)
       end
 
       def media_meta(ref)
@@ -102,6 +159,12 @@ module WhatsappBot
         return if @audit.blank? || metadata.blank?
 
         @audit.update!(metadata: (@audit.metadata || {}).merge(metadata))
+      end
+
+      def catalog_names
+        return [] if @business.blank?
+
+        @business.products.active.order(:name).limit(80).pluck(:name)
       end
 
       def cleanup_tempfile(tempfile)
