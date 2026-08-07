@@ -86,6 +86,7 @@ class WebhooksController < ApplicationController
     prepared = WhatsappBot::Media::PrepareMessage.call(
       inbound: inbound,
       adapter: adapter,
+      business: resolution.business,
       audit: audit
     )
     unless prepared.ok?
@@ -102,7 +103,8 @@ class WebhooksController < ApplicationController
       prepared.body,
       business: resolution.business,
       audit: audit,
-      idempotency_key: inbound.provider_message_id
+      idempotency_key: inbound.provider_message_id,
+      interpretation: prepared.interpretation
     )
   rescue WhatsappBot::AuthorizationGateway::NotAuthorized => e
     audit.mark_denied!(error_message: e.message, business: resolution&.business)

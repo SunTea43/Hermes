@@ -22,7 +22,7 @@ default: &default
     # api_key_env: OPENAI_API_KEY
   media:
     audio_enabled: true
-    image_enabled: false # multimodal in a follow-up PR
+    image_enabled: true
     max_bytes: 16777216 # 16 MB
     # Speech-to-text: openai | groq | fake (OpenAI-compatible /audio/transcriptions)
     stt:
@@ -30,6 +30,10 @@ default: &default
       model: whisper-1
       # base_url: https://api.openai.com/v1
       # api_key_env: OPENAI_API_KEY
+    # Image interpretation: openai | groq | fake (must be a vision-capable model)
+    vision:
+      provider: openai
+      model: gpt-4o-mini
 
 development:
   <<: *default
@@ -44,11 +48,16 @@ development:
     response_format: json_schema
   media:
     audio_enabled: true
-    image_enabled: false
+    image_enabled: true
     max_bytes: 16777216
     stt:
       provider: groq
       model: whisper-large-v3-turbo
+    # Vision: gemini (AI Studio) | openai | groq — reads product/qty/price from the photo
+    vision:
+      provider: gemini
+      model: gemini-flash-lite-latest
+      response_format: json_object
 
 test:
   <<: *default
@@ -62,9 +71,11 @@ test:
     confidence_threshold: 0.7
   media:
     audio_enabled: true
-    image_enabled: false
+    image_enabled: true
     max_bytes: 16777216
     stt:
+      provider: fake
+    vision:
       provider: fake
 
 production:

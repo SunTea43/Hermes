@@ -52,7 +52,7 @@ class WhatsappBot::Media::PrepareMessageTest < ActiveSupport::TestCase
     assert_equal 1, transcriber.calls.size
   end
 
-  test "fails clearly when image has no caption yet" do
+  test "interprets image with vision client when enabled" do
     inbound = WhatsappBot::Messages::InboundMessage.new(
       provider: :test,
       provider_message_id: "SM3",
@@ -67,14 +67,50 @@ class WhatsappBot::Media::PrepareMessageTest < ActiveSupport::TestCase
         }
       ]
     )
+    vision = WhatsappBot::Media::FakeVisionClient.new
 
-    result = WhatsappBot::Media::PrepareMessage.call(inbound: inbound, adapter: @adapter)
+    result = WhatsappBot::Media::PrepareMessage.call(
+      inbound: inbound,
+      adapter: @adapter,
+      business: businesses(:one),
+      vision_client: vision
+    )
 
-    assert result.error?
-    assert_equal :image_not_supported, result.error_code
+    assert result.ok?
+    assert_equal :clarify, result.interpretation.intent
+    assert_equal "arroz", result.interpretation.entities[:items].first["product_name"]
+    assert_equal 1, vision.calls.size
   end
 
-  test "uses image caption while multimodal is disabled" do
+  test "image caption compra resolves purchase intent" do
+    inbound = WhatsappBot::Messages::InboundMessage.new(
+      provider: :test,
+      provider_message_id: "SM3b",
+      from: "+573000000001",
+      to: "+15551234567",
+      body: "",
+      media: [
+        {
+          kind: "image",
+          id: "MED2b",
+          mime_type: "image/jpeg",
+          caption: "compra"
+        }
+      ]
+    )
+
+    result = WhatsappBot::Media::PrepareMessage.call(
+      inbound: inbound,
+      adapter: @adapter,
+      business: businesses(:one),
+      vision_client: WhatsappBot::Media::FakeVisionClient.new
+    )
+
+    assert result.ok?
+    assert_equal :purchase, result.interpretation.intent
+  end
+
+  test "falls back to caption when images are disabled" do
     inbound = WhatsappBot::Messages::InboundMessage.new(
       provider: :test,
       provider_message_id: "SM4",
@@ -91,9 +127,16 @@ class WhatsappBot::Media::PrepareMessageTest < ActiveSupport::TestCase
       ]
     )
 
-    result = WhatsappBot::Media::PrepareMessage.call(inbound: inbound, adapter: @adapter)
+    WhatsappBot::Config.with_settings(
+      WhatsappBot::Config.settings.merge(
+        "media" => WhatsappBot::Config.media_settings.merge("image_enabled" => false)
+      )
+    ) do
+      result = WhatsappBot::Media::PrepareMessage.call(inbound: inbound, adapter: @adapter)
 
-    assert result.ok?
-    assert_equal "Recibí de Pedro: arroz 10kg a $2000", result.body
+      assert result.ok?
+      assert_equal "Recibí de Pedro: arroz 10kg a $2000", result.body
+      assert_nil result.interpretation
+    end
   end
 end
