@@ -36,12 +36,16 @@ flowchart TD
   Identity --> Store[BusinessResolver<br/>tienda autorizada]
   Store -->|ambiguo / no auth| Deny
   Store --> Audit[WhatsappMessageAudit]
-  Store --> Orch[DispatchService]
+  Store --> Media[Media::PrepareMessage]
+  Media -->|audio STT / imagen visión| Orch[DispatchService]
+  Media -->|texto| Orch
   Orch --> Mem[Session en Rails.cache]
   Orch -->|business.llm?| LLM[Interpreter + ConfidenceGuard]
   Orch -->|regex| Regex[Patrones de intención]
+  Orch -->|interpretation imagen| ImgKind[ImageOrderHandler]
   LLM --> Handlers
   Regex --> Handlers
+  ImgKind -->|compra / venta| Handlers
 
   subgraph Handlers[Handlers conversacionales]
     Sale[SaleHandler]
@@ -76,12 +80,13 @@ flowchart TD
 | Capacidad | Estado en main |
 | --- | --- |
 | Provider Adapter (Meta / Twilio) | ✅ `Providers::MetaAdapter`, `TwilioAdapter`, `Resolver` |
-| Contratos `InboundMessage` / outbound | ✅ (incluye `media`; aún no se descarga ni interpreta) |
+| Contratos `InboundMessage` / outbound | ✅ (incluye `media` + `download_media`) |
 | Resolver de tienda + auth WhatsApp | ✅ `BusinessResolver`, `AuthorizationGateway` |
 | Skills con permisos e idempotencia | ✅ 6 skills + `whatsapp_skill_executions` |
 | Confirmación humana en escrituras | ✅ Handlers multi-turno (`sí` / `no` cancela sesión) |
-| Edición de ítems en borrador | ⏳ quitar / cambiar qty-precio (plan media, Fase 1) |
-| Audio / imagen → borrador | ⏳ plan abajo (STT + multimodal) |
+| Edición de ítems en borrador | ✅ `DraftCommands` (quitar / cambiar precio / proveedor / cliente) |
+| Audio → texto → borrador | ✅ `Media::Transcriber` + Interpreter/handlers |
+| Imagen → entidades → borrador | ✅ `Media::MultimodalInterpreter` + `ImageOrderHandler` |
 | Auditoría de mensajes | ✅ `WhatsappMessageAudit` |
 | Agente LLM por tienda | ✅ `businesses.whatsapp_agent` + Interpreter |
 | Guard de confianza | ✅ `ConfidenceGuard` |
@@ -214,13 +219,13 @@ Detalle: [whatsapp-business-authorization.md](./whatsapp-business-authorization.
 
 ---
 
-## Plan: audio e imágenes para órdenes (compra / venta)
+## Audio e imágenes para órdenes (compra / venta)
 
-Objetivo: que el usuario pueda dictar o fotografiar una compra/venta y el bot arme un **borrador listo para confirmar**, con posibilidad de corregir ítems o cancelar, sin rehacer el flujo campo a campo.
+Implementado: el usuario puede **dictar** o **fotografiar** una compra/venta; el bot arma un borrador, pide lo faltante (incluido compra vs venta en fotos sin caption) y solo escribe tras confirmación humana.
 
-Hoy el adapter ya parsea `media` en `InboundMessage` (id, mime_type, caption), pero el webhook solo despacha `inbound.body`. Sin caption, un audio o imagen llega vacío al `DispatchService`. La cancelación básica (`no` / `cancelar`) ya limpia la sesión en handlers; falta documentarla y enriquecer la edición del borrador.
+Detalle de configuración y ejemplos: [whatsapp-bot.md](./whatsapp-bot.md#audio-e-imágenes).
 
-### UX objetivo
+### UX
 
 ```text
 # Audio (nota de voz)
@@ -235,7 +240,7 @@ Usuario → Sí
 Bot     → ✅ COM-xxx registrada. ...
 
 # Imagen (foto de nota / factura / pizarra)
-Usuario → 📷 [foto de lista]   # sin caption: la foto aporta ítems
+Usuario → 📷 [foto de lista]   # la foto aporta ítems/precios
 Bot     → Leí esto de la foto:
            - Arroz 50kg a $2,000
            ¿Es *compra* o *venta*?
@@ -246,28 +251,27 @@ Bot     → Compra a Proveedor:
 
 # Corrección o desistimiento
 Usuario → quitar aceite
-Bot     → Compra a Juanito:
-           - Arroz 50kg × $2,000 = $100,000
-           Total: $100,000. ¿Confirmo?
+Bot     → … ¿Confirmo?
 Usuario → cancelar
 Bot     → Compra cancelada.
 ```
 
-El mismo patrón aplica a **ventas** (cliente + condición de pago si el multimodal/STT los infiere; si no, preguntar solo lo faltante).
+En ventas, tras la interpretación se piden cliente y condición de pago si faltan. Caption claro (`compra` / `venta`) puede saltar la pregunta de tipo de orden.
 
-### Principio de diseño
+### Capas
 
-| Capa | Responsabilidad |
-| --- | --- |
-| Media ingest | Descargar bytes del proveedor; normalizar a archivo temporal / blob |
-| Audio → texto | STT (transcripción); el texto entra al flujo existente |
-| Imagen → entidades | Modelo multimodal → mismas entidades que el Interpreter (`intent`, `items`, `supplier_name` / `customer_name`, …) |
-| Handlers | Armar draft; **ir directo a confirmación** cuando la confianza y los datos sean suficientes |
-| Skills | Sin cambios de frontera: solo escriben tras confirmación humana |
+| Capa | Responsabilidad | Componentes |
+| --- | --- | --- |
+| Media ingest | Descargar bytes; tempfile; metadata en audit | `Providers::*#download_media`, `Media::PrepareMessage` |
+| Audio → texto | STT; el texto entra al flujo existente | `Media::Transcriber` (OpenAI / Groq / fake) |
+| Imagen → entidades | Visión → JSON del Interpreter (`items`, precios, …) | `Media::MultimodalInterpreter`, `OpenAiVisionClient` |
+| Tipo de orden (foto) | Sin caption claro → preguntar compra/venta | `Media::ImageOrderKind`, `ImageOrderHandler` |
+| Handlers | Draft + revisión (confirmar / editar / cancelar) | `SaleHandler`, `PurchaseHandler`, `DraftCommands` |
+| Skills | Solo escriben tras confirmación | `registrar_compra` / `registrar_venta` |
 
-Audio e imagen **no** llaman a `registrar_compra` / `registrar_venta` por su cuenta: solo producen interpretación + draft.
+Audio e imagen **no** llaman a las skills por su cuenta: solo producen interpretación + draft.
 
-### Arquitectura propuesta
+### Flujo de media
 
 ```mermaid
 flowchart TD
@@ -275,96 +279,37 @@ flowchart TD
   P --> WH[Webhook + InboundMessage]
   WH --> MI{¿Tiene media?}
   MI -->|no| D[DispatchService texto]
-  MI -->|sí| DL[MediaDownloader vía adapter]
+  MI -->|sí| DL[download_media vía adapter]
   DL --> K{tipo}
   K -->|audio| STT[Transcriber STT]
   K -->|image| MM[MultimodalInterpreter]
   STT --> TXT[texto normalizado]
-  MM --> ENT[entities + intent + confidence]
+  MM --> KIND{¿Caption compra/venta?}
+  KIND -->|sí| ENT[entities + intent]
+  KIND -->|no| ASK[ImageOrderHandler<br/>¿compra o venta?]
+  ASK --> ENT
   TXT --> D
   ENT --> H[SaleHandler / PurchaseHandler]
   D --> H
-  H --> REV[Paso review_draft]
+  H --> REV[awaiting_confirmation / review]
   REV -->|sí| SK[Skill registrar_*]
   REV -->|editar ítem| REV
   REV -->|no / cancelar| CLR[limpiar sesión]
 ```
 
-### Estado actual vs gaps
+### Decisiones tomadas
 
-| Capacidad | Hoy | Gap |
-| --- | --- | --- |
-| Parse de media en adapter | ✅ id / mime / caption | Descargar binario (`GET /{media-id}` en Meta; URL Twilio) |
-| Paso de media al dispatch | ❌ solo `body` | Propagar `InboundMessage` o `media` + body efectivo |
-| Cancelar borrador | ✅ `negative?` en collecting / confirm | Mensajes más claros; comando explícito `cancelar` en copy |
-| Editar / quitar ítems del draft | ❌ solo agregar en compra | Comandos de revisión: quitar, cambiar qty/precio, cambiar proveedor/cliente |
-| Atajo a confirmación | Parcial (venta con entidades completas) | Tras media de alta confianza → `awaiting_confirmation` |
-| Audio | ❌ | `Media::Transcriber` + reutilizar Interpreter/regex |
-| Imagen | ❌ (roadmap “OCR”) | `Media::MultimodalInterpreter` (visión + JSON schema) |
-
-### Fases de implementación
-
-#### Fase 0 — Contrato y descarga (infra)
-
-1. Extender el contrato de media: `id`, `mime_type`, `caption`, `url` (Twilio), `kind` (`audio` / `image` / …).
-2. `Providers::Base#download_media(media_ref) → tempfile` (Meta: token + media id; Twilio: URL autenticada).
-3. Webhook: si hay media sin body útil, no despachar texto vacío; encolar o procesar ingest antes del handler.
-4. Auditoría: guardar en metadata `media_kind`, `media_id`, duración/tamaño, sin persistir el binario en logs.
-
-#### Fase 1 — Revisión de borrador (texto primero; desbloquea media)
-
-Mejorar el flujo conversacional **antes** de depender de STT/visión. Aplica a compra y venta:
-
-1. Paso unificado `awaiting_confirmation` (o `review_draft`) con copy explícito:
-   - `sí` → skill
-   - `no` / `cancelar` → limpiar sesión (`ResponseRenderer.cancelled`)
-   - `quitar <producto>` / `eliminar ítem N`
-   - `cambiar precio <producto> <monto>` / `cambiar cantidad …`
-   - `proveedor X` / `cliente Y` (según intent)
-2. Si faltan campos obligatorios tras la interpretación (ej. venta sin cliente), preguntar **solo** lo faltante; no reiniciar el carrito.
-3. Documentar y cubrir con tests de handler (hoy el cancel existe pero no está en los ejemplos de producto).
-
-Esta fase es la que hace “automático” el flujo: el usuario confirma o ajusta, no vuelve a dictar toda la orden.
-
-#### Fase 2 — Audio → texto → mismo flujo
-
-1. `WhatsappBot::Media::Transcriber` (OpenAI Whisper u API compatible; configurable por env).
-2. Pipeline: download → STT → `effective_body = transcription` (+ caption si existe).
-3. Despachar como mensaje de texto normal (regex o Interpreter según `business.whatsapp_agent`).
-4. Si el Interpreter/entities traen ítems + contraparte suficientes → saltar a `awaiting_confirmation` con resumen.
-5. Respuesta intermedia opcional mientras transcribe (“Escuchando tu nota…”) vía job async si la latencia supera ~2–3s (Solid Queue + reply de progreso).
-6. Errores: audio vacío / idioma no soportado / STT fallido → mensaje claro pidiendo reintentar o escribir.
-
-#### Fase 3 — Imagen → interpretación multimodal
-
-1. `WhatsappBot::Media::MultimodalInterpreter` con el **mismo JSON schema** que `Interpreter` (intent + entities + confidence), más campos opcionales `source: image` y `notes` (texto ilegible, dudas).
-2. Input: imagen (bytes o URL firmada) + caption + catálogo resumido de productos de la tienda (nombres) para anclar matching.
-3. `ConfidenceGuard` reutilizado: baja confianza → pedir aclaración o caer a flujo de recolección de ítems; no escribir.
-4. Matching de productos: reutilizar la lógica de handlers (`find_product`); si un renglón no matchea, listarlo como “no encontrado” y pedir corrección antes de confirmar.
-5. Mismo destino que audio: draft → review (confirmar / editar / cancelar) → skill.
-
-#### Fase 4 — Calidad, costos y rollout
-
-1. Evals: casos de transcripción ficticia + fixtures de entidades desde “imagen” (golden JSON); no hace falta foto real en CI si se mockea el cliente multimodal.
-2. Feature flags por tienda (ej. `businesses.whatsapp_media_ingest` o config YAML): audio / image independientes.
-3. Límites: tamaño máximo, solo `audio/*` e `image/*`, timeout, costo por mensaje en audit.
-4. Rollout: primero compras (mayor valor en “foto de remito”), luego ventas; regex-only shops pueden usar STT + patrones sin multimodal completo.
-
-### Decisiones abiertas (resolver en implementación)
-
-| Tema | Recomendación inicial |
+| Tema | Decisión |
 | --- | --- |
-| Sync vs async | Sync si &lt; ~3s; si no, job + “Procesando tu audio/foto…” |
-| ¿Un solo modelo para imagen+intent? | Sí: multimodal con schema del Interpreter; evitar OCR crudo + segundo LLM salvo fallback |
-| ¿Persistir media? | No en v1; solo metadata en audit. Active Storage solo si hay requisito de evidencia |
-| Caption + media | La foto aporta ítems/precios; compra vs venta se confirma por chat (o caption claro). Confirmaciones también por mensajes |
-| Documentos PDF | Fuera de v1; mismo hook `download_media` deja la puerta abierta |
+| Sync vs async | Sync en v1 (webhook procesa STT/visión inline) |
+| Modelo de imagen | Un multimodal con schema del Interpreter; sin OCR crudo + segundo LLM |
+| Persistencia de media | No; solo metadata en `WhatsappMessageAudit` |
+| Caption + foto | La foto aporta ítems/precios; compra vs venta por chat (o caption claro) |
+| Feature flags | `media.audio_enabled` / `media.image_enabled` en `config/whatsapp.yml` |
+| Documentos PDF | Fuera de v1; el hook `download_media` deja la puerta abierta |
 
-### Criterios de aceptación (v1)
+### Pendiente (mejoras)
 
-- Nota de voz de compra con 1–N ítems produce resumen y confirma con un `sí`.
-- Foto de lista de compra produce el mismo resumen (con matching al catálogo).
-- `cancelar` / `no` en cualquier paso de revisión no crea orden ni mueve inventario.
-- `quitar <producto>` actualiza el draft y vuelve a pedir confirmación.
-- Skills existentes sin cambios de firma; idempotency_key sigue siendo el `provider_message_id` del mensaje original (o del mensaje de confirmación, documentar una sola política).
-- Tiendas sin flag de media se comportan como hoy (texto únicamente).
+- Mensaje intermedio async (“Procesando tu audio/foto…”) si la latencia es alta
+- Flags de media por tienda (hoy son globales por entorno en YAML)
+- Evals golden específicos de visión (hoy se mockea el cliente en tests)
