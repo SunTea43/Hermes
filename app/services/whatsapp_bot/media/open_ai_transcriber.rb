@@ -5,30 +5,33 @@ require "securerandom"
 
 module WhatsappBot
   module Media
+    # OpenAI-compatible speech-to-text client (/audio/transcriptions).
+    # Works with OpenAI, Groq, and other compatible providers via Config.media_stt_*.
     class OpenAiTranscriber
       def initialize(
-        api_key: ENV["OPENAI_API_KEY"],
-        model: WhatsappBot::Config.media_whisper_model,
-        base_url: ENV.fetch("OPENAI_BASE_URL", "https://api.openai.com/v1")
+        api_key: WhatsappBot::Config.media_stt_api_key,
+        api_key_env: WhatsappBot::Config.media_stt_api_key_env,
+        model: WhatsappBot::Config.media_stt_model,
+        base_url: WhatsappBot::Config.media_stt_base_url
       )
         @api_key = api_key
+        @api_key_env = api_key_env
         @model = model
-        @base_url = base_url
+        @base_url = base_url.to_s.delete_suffix("/")
       end
 
       def transcribe(file_path, mime_type: nil)
-        raise "OPENAI_API_KEY is missing" if @api_key.blank?
+        raise "#{@api_key_env} is missing" if @api_key.blank?
 
         uri = URI("#{@base_url}/audio/transcriptions")
-        file_name = File.basename(file_path.to_s)
-        file_name = "#{file_name}.ogg" if File.extname(file_name).blank?
+        file_name, content_type = AudioFile.upload_identity(file_path, mime_type: mime_type)
 
         boundary = "----HermesBoundary#{SecureRandom.hex(8)}"
         body = multipart_body(
           boundary: boundary,
           file_path: file_path,
           file_name: file_name,
-          mime_type: mime_type.presence || "audio/ogg",
+          mime_type: content_type,
           model: @model
         )
 

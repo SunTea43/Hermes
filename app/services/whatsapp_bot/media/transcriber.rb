@@ -6,10 +6,11 @@ module WhatsappBot
       end
 
       def self.default_client
-        case WhatsappBot::Config.media_transcriber
+        case WhatsappBot::Config.media_stt_provider
         when :fake
           FakeTranscriber.new
         else
+          # openai, groq, or any OpenAI-compatible endpoint configured in media.stt
           OpenAiTranscriber.new
         end
       end

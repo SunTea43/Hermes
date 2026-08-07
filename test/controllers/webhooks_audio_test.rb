@@ -10,8 +10,7 @@ class WebhooksAudioTest < ActionDispatch::IntegrationTest
         "audio_enabled" => true,
         "image_enabled" => false,
         "max_bytes" => 16.megabytes,
-        "whisper_model" => "whisper-1",
-        "transcriber" => "fake"
+        "stt" => { "provider" => "fake" }
       }
     ) { yield }
   end

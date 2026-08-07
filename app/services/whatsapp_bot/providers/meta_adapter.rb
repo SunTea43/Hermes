@@ -211,14 +211,11 @@ module WhatsappBot
       end
 
       def extension_for(mime_type)
-        case mime_type.to_s
-        when "audio/ogg", "audio/opus" then ".ogg"
-        when "audio/mpeg" then ".mp3"
-        when "audio/mp4", "audio/aac" then ".m4a"
+        case Media::AudioFile.base_mime(mime_type)
         when "image/jpeg" then ".jpg"
         when "image/png" then ".png"
         when "image/webp" then ".webp"
-        else ".bin"
+        else Media::AudioFile.extension_for(mime_type)
         end
       end
     end
