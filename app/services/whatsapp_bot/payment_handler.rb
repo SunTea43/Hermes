@@ -57,19 +57,16 @@ module WhatsappBot
         return
       end
 
-      result = Skills::Registry.call(
-        "registrar_pago",
-        user: @user,
-        business: @business,
-        input: draft,
-        idempotency_key: skill_key("registrar_pago")
-      )
-      @session.clear
-
-      unless result.success?
-        reply(ResponseRenderer.skill_error("registrar el pago", result.errors))
-        return
-      end
+      result = run_mutating_skill("registrar el pago") {
+        Skills::Registry.call(
+          "registrar_pago",
+          user: @user,
+          business: @business,
+          input: draft,
+          idempotency_key: skill_key("registrar_pago")
+        )
+      }
+      return unless result
 
       data = result.data
       reply(ResponseRenderer.payment_recorded(

@@ -101,26 +101,24 @@ module WhatsappBot
       end
 
       if Array(draft[:items]).blank?
+        @session.clear
         reply(ResponseRenderer.purchase_parse_error)
         return
       end
 
-      result = Skills::Registry.call(
-        "registrar_compra",
-        user: @user,
-        business: @business,
-        input: {
-          supplier_name: draft[:supplier_name],
-          items: draft[:items]
-        },
-        idempotency_key: skill_key("registrar_compra")
-      )
-      @session.clear
-
-      unless result.success?
-        reply(ResponseRenderer.skill_error("registrar la compra", result.errors))
-        return
-      end
+      result = run_mutating_skill("registrar la compra") {
+        Skills::Registry.call(
+          "registrar_compra",
+          user: @user,
+          business: @business,
+          input: {
+            supplier_name: draft[:supplier_name],
+            items: draft[:items]
+          },
+          idempotency_key: skill_key("registrar_compra")
+        )
+      }
+      return unless result
 
       reply(ResponseRenderer.purchase_recorded(
         reference_number: result.data[:reference_number],

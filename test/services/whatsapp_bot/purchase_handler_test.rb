@@ -150,4 +150,25 @@ class WhatsappBot::PurchaseHandlerTest < ActiveSupport::TestCase
     assert_match(/Arroz/, delivered.body)
     assert_match(/\$2200/, delivered.body)
   end
+
+  test "confirmation skill error cancels draft and notifies user" do
+    original = WhatsappBot::Skills::Registry.method(:call)
+    WhatsappBot::Skills::Registry.define_singleton_method(:call) { |*| raise ArgumentError, "boom" }
+
+    begin
+      WhatsappBot::PurchaseHandler.new(
+        @user,
+        "sí",
+        @session,
+        draft_with,
+        business: @business
+      ).call
+    ensure
+      WhatsappBot::Skills::Registry.define_singleton_method(:call, original)
+    end
+
+    delivered = WhatsappBot::Providers::TestAdapter.deliveries.last
+    assert_match(/No pude registrar la compra/, delivered.body)
+    assert_match(/Operación cancelada/, delivered.body)
+  end
 end

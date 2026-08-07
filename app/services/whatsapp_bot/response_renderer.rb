@@ -190,8 +190,11 @@ module WhatsappBot
         MSG
       end
 
-      def skill_error(action, errors)
-        "No pude #{action}: #{Array(errors).join(', ')}"
+      def skill_error(action, errors, cancelled: false)
+        msg = "No pude #{action}: #{Array(errors).join(', ')}"
+        return msg unless cancelled
+
+        "#{msg} Operación cancelada. Puedes intentar de nuevo cuando quieras."
       end
 
       def draft_item_not_found(query)
